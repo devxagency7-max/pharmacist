@@ -1,0 +1,424 @@
+{
+  "meta": {
+    "project": "Tamenny Patient",
+    "version": "2.0",
+    "objective": "Full Visual Branding Protocol & Specification",
+    "platform": "Flutter",
+    "architecture": "Feature First + Clean Architecture",
+    "rtl": true
+  },
+  "strict_rules": {
+    "change_ui_only": true,
+    "keep_business_logic": true,
+    "keep_api": true,
+    "keep_firebase": true,
+    "keep_bloc_cubit": true,
+    "keep_navigation": true,
+    "keep_models": true,
+    "keep_usecases": true,
+    "keep_repositories": true,
+    "keep_datasources": true,
+    "keep_features": true,
+    "keep_screen_flow": true,
+    "do_not_add_features": true,
+    "do_not_remove_features": true
+  },
+  "branding_protocol": {
+    "1_brand_personality": [
+      "Modern",
+      "Premium",
+      "Clean",
+      "Friendly",
+      "Smart",
+      "Human",
+      "Trustworthy",
+      "Fast",
+      "Minimal",
+      "Future-ready"
+    ],
+    "2_design_philosophy": {
+      "principles": [
+        "No element added purely for decoration",
+        "Every element has a function",
+        "Every space has a purpose",
+        "Every color has a meaning",
+        "Every motion has a target",
+        "UI must convey a professional product feel rather than just an app"
+      ]
+    },
+    "3_visual_language": {
+      "geometry": "Soft Geometry (Rounded over Sharp)",
+      "corner_radius": {
+        "cards": "16-24px",
+        "buttons": "14-18px",
+        "inputs": "14px",
+        "dialogs": "24px",
+        "bottom_sheets": "28px"
+      }
+    },
+    "4_layout_system": {
+      "grid_base": "8pt Grid",
+      "spacing_scale": [
+        4,
+        8,
+        12,
+        16,
+        20,
+        24,
+        32,
+        40,
+        48,
+        64
+      ],
+      "rule": "Never use random spacing values"
+    },
+    "5_depth_system": {
+      "style": "Ultra-soft Depth",
+      "shadow": {
+        "opacity": "6%",
+        "blur": 20,
+        "y_offset": 8,
+        "x_offset": 0,
+        "rule": "No strong or heavy shadows"
+      }
+    },
+    "6_elevation": {
+      "max_levels": 3,
+      "levels": {
+        "level_0": "Background",
+        "level_1": "Cards",
+        "level_2": "Floating Components"
+      }
+    },
+    "7_color_system": {
+      "token_count": "12-18 Color Tokens",
+      "tokens": {
+        "primary": "Brand Color (#5A97DF)",
+        "secondary": "Support Color (#08C75A)",
+        "success": "Success Status Color",
+        "warning": "Warning Status Color (#FFBE21)",
+        "danger": "Danger / Error Status Color (#FF4757)",
+        "info": "Informational Status Color",
+        "surface": "Card & Container Surface Color (#FFFFFF)",
+        "background": "Application Background Color (#F4F7FC)",
+        "text_primary": "Primary Text Color (#1A1D26)",
+        "text_secondary": "Secondary Text Color (#64748B)",
+        "border": "Subtle Border Color",
+        "divider": "Divider Line Color",
+        "disabled": "Disabled Element Color"
+      }
+    },
+    "8_typography": {
+      "font_family": "Modern Sans (SF Pro, Inter, Manrope, Outfit, Plus Jakarta)",
+      "max_weights": 4,
+      "allowed_weights": [
+        "Regular",
+        "Medium",
+        "SemiBold",
+        "Bold"
+      ]
+    },
+    "9_typography_scale": {
+      "hierarchy": [
+        "Display",
+        "Heading 1",
+        "Heading 2",
+        "Heading 3",
+        "Title",
+        "Subtitle",
+        "Body",
+        "Caption",
+        "Tiny"
+      ],
+      "line_height_range": "120% - 150%"
+    },
+    "10_icon_style": {
+      "style": "Outline",
+      "corners": "Rounded",
+      "stroke_width": "2px",
+      "rule": "Do not mix Filled and Outline icons"
+    },
+    "11_illustration_style": {
+      "allowed_styles": [
+        "Flat",
+        "Gradient",
+        "Minimal",
+        "3D Soft",
+        "Glass"
+      ],
+      "rule": "Maintain visual consistency; do not mix more than 1 style across the app"
+    },
+    "12_image_style": {
+      "characteristics": [
+        "High Contrast",
+        "Clean Background",
+        "Natural Lighting",
+        "Realistic",
+        "Premium"
+      ]
+    },
+    "13_button_protocol": {
+      "types": {
+        "primary": "Filled",
+        "secondary": "Outlined",
+        "ghost": "Text Only",
+        "danger": "Destructive Action",
+        "loading": "Active Action State",
+        "disabled": "Inactive State",
+        "icon_button": "Icon Only Action",
+        "fab": "Floating Action Button"
+      },
+      "states": [
+        "Default",
+        "Hover",
+        "Pressed",
+        "Focused",
+        "Disabled",
+        "Loading"
+      ]
+    },
+    "14_input_protocol": {
+      "states": [
+        "Normal",
+        "Focused",
+        "Filled",
+        "Disabled",
+        "Read Only",
+        "Error",
+        "Success",
+        "Warning"
+      ]
+    },
+    "15_card_protocol": {
+      "types": [
+        "Image Card",
+        "Info Card",
+        "Product Card",
+        "Medical Card",
+        "Statistics Card",
+        "Profile Card",
+        "Action Card"
+      ]
+    },
+    "16_navigation_protocol": {
+      "components": [
+        "Bottom Navigation",
+        "Top Bar",
+        "Drawer",
+        "Tabs",
+        "Breadcrumb",
+        "Back Button",
+        "Search",
+        "Floating Action"
+      ]
+    },
+    "17_motion_language": {
+      "durations": [
+        "200ms",
+        "250ms",
+        "300ms"
+      ],
+      "easing_curves": [
+        "Ease Out",
+        "Ease In Out",
+        "Spring"
+      ],
+      "rule": "No bounce unless explicitly appropriate for the context"
+    },
+    "18_transition_rules": {
+      "types": [
+        "Fade",
+        "Scale",
+        "Slide",
+        "Shared Element",
+        "Hero Animation"
+      ],
+      "rule": "Never trigger more than one motion transition simultaneously"
+    },
+    "19_glassmorphism_rules": {
+      "blur": 12,
+      "opacity": "8%",
+      "border": "White 15%",
+      "rule": "Do not apply glassmorphism across the entire screen"
+    },
+    "20_gradient_rules": {
+      "max_colors": 2,
+      "angle": "Fixed angle",
+      "rule": "No rainbow gradients"
+    },
+    "21_border_rules": {
+      "width": "1px",
+      "color": "Soft Gray",
+      "rule": "Never use pure black borders"
+    },
+    "22_empty_states": {
+      "structure": [
+        "Illustration",
+        "Title",
+        "Description",
+        "Primary Action",
+        "Secondary Action"
+      ]
+    },
+    "23_loading_system": {
+      "types": [
+        "Skeleton",
+        "Shimmer",
+        "Circular",
+        "Linear",
+        "Progress"
+      ]
+    },
+    "24_feedback_system": {
+      "components": [
+        "Toast",
+        "SnackBar",
+        "Banner",
+        "Dialog",
+        "Bottom Sheet"
+      ]
+    },
+    "25_accessibility": {
+      "min_touch_area": "44px",
+      "contrast_standard": "AA",
+      "dynamic_font_support": true
+    },
+    "26_responsive_rules": {
+      "supported_viewports": [
+        "Mobile",
+        "Tablet",
+        "Desktop",
+        "Ultra Wide"
+      ]
+    },
+    "27_component_language": {
+      "universal_states": [
+        "Default",
+        "Hover",
+        "Focused",
+        "Pressed",
+        "Disabled",
+        "Loading",
+        "Error",
+        "Success",
+        "Selected"
+      ]
+    },
+    "28_ui_density": {
+      "setting": "Comfortable",
+      "rule": "Never use Compact density"
+    },
+    "29_white_space": {
+      "philosophy": "Content needs room to breathe. Avoid overcrowding screens."
+    },
+    "30_information_hierarchy": {
+      "levels": [
+        "Primary",
+        "Secondary",
+        "Supporting",
+        "Meta"
+      ],
+      "rule": "Eye must immediately perceive where to focus first"
+    },
+    "31_brand_motion": {
+      "appearance": "Fade + Slight Scale",
+      "transition": "Slide",
+      "success": "Check Animation",
+      "error": "Small Shake"
+    },
+    "32_notification_language": {
+      "characteristics": [
+        "Friendly",
+        "Short",
+        "Actionable",
+        "Positive"
+      ]
+    },
+    "33_micro_interactions": [
+      "Button Ripple",
+      "Icon Rotation",
+      "Favorite Pop",
+      "Checkbox Animation",
+      "Progress Fill",
+      "Switch Motion",
+      "Pull Refresh",
+      "Swipe Actions"
+    ],
+    "34_design_tokens": [
+      "Colors",
+      "Spacing",
+      "Radius",
+      "Shadow",
+      "Elevation",
+      "Typography",
+      "Opacity",
+      "Animation Duration",
+      "Border",
+      "Blur",
+      "Gradient",
+      "Icon Size"
+    ],
+    "35_naming_convention": {
+      "examples": [
+        "color.primary",
+        "color.surface",
+        "color.text.primary",
+        "spacing.lg",
+        "radius.md",
+        "shadow.sm",
+        "button.primary",
+        "card.default",
+        "input.error",
+        "text.heading",
+        "text.caption"
+      ]
+    },
+    "36_ai_prompt_protocol": [
+      "Preserve the existing visual language.",
+      "Maintain the same spacing rhythm.",
+      "Use identical typography hierarchy.",
+      "Keep consistent corner radius.",
+      "Follow the established elevation system.",
+      "Preserve the icon style.",
+      "Respect the design tokens.",
+      "Maintain component proportions.",
+      "Reuse the same motion language.",
+      "Keep accessibility compliance.",
+      "Do not introduce new visual styles unless explicitly requested."
+    ]
+  },
+  "presentation_layer_only": {
+    "allowed_changes": [
+      "screens",
+      "widgets",
+      "theme",
+      "colors",
+      "typography",
+      "icons",
+      "animations",
+      "cards",
+      "buttons",
+      "bottom_navigation",
+      "app_bar",
+      "spacing",
+      "radius",
+      "shadows",
+      "illustrations"
+    ],
+    "forbidden_changes": [
+      "api",
+      "firebase",
+      "repositories",
+      "bloc",
+      "cubit",
+      "domain",
+      "data",
+      "models",
+      "entities",
+      "usecases",
+      "routes",
+      "business_logic"
+    ]
+  },
+  "master_prompt": "Rebrand the entire Flutter application UI according to the Full Visual Branding Protocol (36 Rules). Preserve 100% of existing architecture, APIs, Cubits/Blocs, Repositories, UseCases, Models, Firebase, Routes, navigation, and business logic. Redesign ONLY the Presentation layer using Soft Geometry (14-28px radius), 8pt Grid spacing, 3-level elevation, ultra-soft shadows (6% opacity, 20 blur), 12-18 design color tokens, 4 font weights with line height 120-150%, outline 2px rounded icons, motion language (200-300ms, ease-out/spring), glassmorphism (12 blur, 8% opacity), clean white space, and AA accessibility compliance."
+}

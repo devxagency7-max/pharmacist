@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "886370477326",
+    "project_id": "pharmacare-73",
+    "storage_bucket": "pharmacare-73.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:886370477326:android:2b9d6161b5652648df635f",
+        "android_client_info": {
+          "package_name": "com.devx.pharmacist"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyALGWgViZI-8_hQv8b2Pwn62EJfVJKjzUE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:886370477326:android:abd237746ebf5fafdf635f",
+        "android_client_info": {
+          "package_name": "com.pharma.care"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyALGWgViZI-8_hQv8b2Pwn62EJfVJKjzUE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

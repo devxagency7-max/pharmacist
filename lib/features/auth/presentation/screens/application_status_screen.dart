@@ -1,0 +1,301 @@
+import 'dart:ui';
+import 'package:animate_do/animate_do.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:pharmacist/core/constants/app_colors.dart';
+import 'package:pharmacist/core/di/injection_container.dart';
+import 'package:pharmacist/features/auth/domain/entities/pharmacist_application_entity.dart';
+import 'package:pharmacist/features/auth/domain/repositories/auth_repository.dart';
+import 'signup_screen.dart';
+
+class ApplicationStatusScreen extends StatefulWidget {
+  final PharmacistApplicationEntity initialApplication;
+
+  const ApplicationStatusScreen({super.key, required this.initialApplication});
+
+  @override
+  State<ApplicationStatusScreen> createState() => _ApplicationStatusScreenState();
+}
+
+class _ApplicationStatusScreenState extends State<ApplicationStatusScreen> {
+  bool _isWithdrawing = false;
+
+  Future<void> _confirmAndWithdraw() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'إلغاء الطلب',
+          style: GoogleFonts.cairo(fontWeight: FontWeight.w900),
+        ),
+        content: Text(
+          'هل أنت متأكد إنك عايز تلغي طلب التقديم ده؟ هيتم حذفه نهائيًا وتقدر تقدّم بطلب جديد بعد كده.',
+          style: GoogleFonts.cairo(fontWeight: FontWeight.w600),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('تراجع', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(
+              'نعم، إلغاء الطلب',
+              style: GoogleFonts.cairo(fontWeight: FontWeight.w900, color: AppColors.error),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isWithdrawing = true);
+    try {
+      await getIt<AuthRepository>().withdrawApplication(widget.initialApplication.id);
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const SignUpScreen()),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isWithdrawing = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'تعذر إلغاء الطلب: $e',
+            style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isRejected = widget.initialApplication.status.toLowerCase() == 'rejected';
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: Stack(
+        children: [
+          _buildBackgroundMesh(),
+          SafeArea(
+            child: isRejected
+                ? _buildStatusView(
+                    context: context,
+                    icon: Icons.cancel_rounded,
+                    iconColor: AppColors.error,
+                    title: 'تم رفض طلب التقديم',
+                    subtitle: 'حالة الطلب حالياً: مرفوض (Rejected)',
+                    rejectionReason: widget.initialApplication.rejectionReason,
+                    showRetryButton: true,
+                  )
+                : _buildStatusView(
+                    context: context,
+                    icon: Icons.pending_actions_rounded,
+                    iconColor: Colors.orange,
+                    title: 'طلب التقديم قيد المراجعة',
+                    subtitle: 'حالة الطلب حالياً: قيد الانتظار (Pending)',
+                    rejectionReason: null,
+                    showRetryButton: false,
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBackgroundMesh() {
+    return Stack(
+      children: [
+        Positioned(
+          top: -100.h,
+          right: -100.w,
+          child: Container(
+            width: 300.r,
+            height: 300.r,
+            decoration: BoxDecoration(
+              color: const Color(0xFFB3E5FC).withOpacity(0.3),
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
+        Positioned(
+          bottom: -50.h,
+          left: -50.w,
+          child: Container(
+            width: 250.r,
+            height: 250.r,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFE6DC).withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
+        BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
+          child: Container(color: Colors.transparent),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatusView({
+    required BuildContext context,
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required String? rejectionReason,
+    required bool showRetryButton,
+  }) {
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 16.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(height: 20.h),
+          FadeInDown(
+            child: Icon(icon, size: 72.r, color: iconColor),
+          ),
+          SizedBox(height: 16.h),
+          FadeInDown(
+            delay: const Duration(milliseconds: 200),
+            child: Text(
+              title,
+              style: GoogleFonts.cairo(
+                fontWeight: FontWeight.w900,
+                fontSize: 20.sp,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+          SizedBox(height: 8.h),
+          FadeInDown(
+            delay: const Duration(milliseconds: 300),
+            child: Text(
+              subtitle,
+              style: GoogleFonts.cairo(
+                fontWeight: FontWeight.bold,
+                fontSize: 13.sp,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+          SizedBox(height: 24.h),
+          if (rejectionReason != null && rejectionReason.trim().isNotEmpty)
+            FadeInUp(
+              delay: const Duration(milliseconds: 350),
+              child: Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(16.w),
+                decoration: BoxDecoration(
+                  color: AppColors.error.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(16.r),
+                  border: Border.all(color: AppColors.error.withOpacity(0.3), width: 1.5),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.info_outline_rounded, color: AppColors.error, size: 20.r),
+                        SizedBox(width: 8.w),
+                        Text(
+                          'سبب الرفض',
+                          style: GoogleFonts.cairo(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 13.sp,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8.h),
+                    Text(
+                      rejectionReason,
+                      style: GoogleFonts.cairo(
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textSecondary,
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          if (showRetryButton) ...[
+            SizedBox(height: 32.h),
+            FadeInUp(
+              delay: const Duration(milliseconds: 400),
+              child: SizedBox(
+                width: double.infinity,
+                height: 56.h,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => const SignUpScreen()),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryGreen,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16.r),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    'تسجيل مرة أخرى',
+                    style: GoogleFonts.cairo(
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+          SizedBox(height: 16.h),
+          FadeInUp(
+            delay: const Duration(milliseconds: 450),
+            child: SizedBox(
+              width: double.infinity,
+              height: 56.h,
+              child: OutlinedButton(
+                onPressed: _isWithdrawing ? null : _confirmAndWithdraw,
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppColors.error, width: 1.5),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16.r),
+                  ),
+                ),
+                child: _isWithdrawing
+                    ? SizedBox(
+                        width: 22.r,
+                        height: 22.r,
+                        child: const CircularProgressIndicator(strokeWidth: 2, color: AppColors.error),
+                      )
+                    : Text(
+                        'إلغاء الطلب',
+                        style: GoogleFonts.cairo(
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.error,
+                        ),
+                      ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
