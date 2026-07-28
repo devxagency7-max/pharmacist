@@ -13,6 +13,8 @@ import 'package:pharmacist/features/chat/presentation/screens/chat_list_screen.d
 import 'package:pharmacist/features/chat/domain/repositories/chat_repository.dart';
 import 'package:pharmacist/features/chat/domain/entities/chat_entity.dart';
 import 'package:pharmacist/features/reports/presentation/screens/reports_screen.dart';
+import 'package:pharmacist/features/ratings/domain/repositories/rating_repository.dart';
+import 'package:pharmacist/features/ratings/domain/entities/rating_entity.dart';
 import 'package:pharmacist/features/notifications/presentation/screens/notifications_screen.dart';
 import 'package:pharmacist/features/notifications/domain/repositories/notification_repository.dart';
 import 'package:pharmacist/features/notifications/domain/entities/notification_entity.dart';
@@ -40,6 +42,8 @@ class _HomeScreenState extends State<HomeScreen> {
   // Real data loaded from API
   int _unreadNotificationsCount = 0;
   int _activeChatsCount = 0;
+  double _averageRating = 0;
+  int _ratingsCount = 0;
   List<NotificationEntity> _recentNotifications = [];
   List<PatientSummaryEntity> _myPatients = [];
 
@@ -58,11 +62,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       // Fetch live data concurrently
+      final authState = context.read<AuthBloc>().state;
+      final pharmacistId = authState is AuthAuthenticated ? authState.user.id : null;
+
       final futures = await Future.wait([
         getIt<NotificationRepository>().getUnreadCount(),
         getIt<ChatRepository>().getConversations(page: 1, pageSize: 50),
         getIt<NotificationRepository>().getNotifications(page: 1, pageSize: 5),
         getIt<PatientRepository>().getMyPatients(page: 1, pageSize: 15),
+        if (pharmacistId != null)
+          getIt<RatingRepository>().getPharmacistRatings(pharmacistId, page: 1, pageSize: 50),
       ]);
 
       if (mounted) {
@@ -71,6 +80,13 @@ class _HomeScreenState extends State<HomeScreen> {
           _activeChatsCount = (futures[1] as PagedResult<ConversationEntity>).items.length;
           _recentNotifications = (futures[2] as PagedResult<NotificationEntity>).items;
           _myPatients = (futures[3] as PagedResult<PatientSummaryEntity>).items;
+          if (pharmacistId != null) {
+            final ratings = (futures[4] as PagedResult<RatingEntity>).items;
+            _ratingsCount = ratings.length;
+            _averageRating = ratings.isEmpty
+                ? 0
+                : ratings.map((r) => r.score).reduce((a, b) => a + b) / ratings.length;
+          }
           _isLoading = false;
         });
       }
@@ -146,25 +162,25 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              SizedBox(height: 14.h),
+                              SizedBox(height: 16.h),
                               Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 18.w),
+                                padding: EdgeInsets.symmetric(horizontal: 16.w),
                                 child: Builder(
                                   builder: (headerContext) => _buildHeader(headerContext),
                                 ),
                               ),
-                              SizedBox(height: 18.h),
+                              SizedBox(height: 20.h),
                               Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 18.w),
+                                padding: EdgeInsets.symmetric(horizontal: 16.w),
                                 child: _buildAppleGlassDoctorGreetingCard(pharmacistName),
                               ),
-                              SizedBox(height: 22.h),
+                              SizedBox(height: 24.h),
                               Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 18.w),
+                                padding: EdgeInsets.symmetric(horizontal: 16.w),
                                 child: Text(
                                   'الوصول السريع',
                                   style: GoogleFonts.cairo(
-                                    fontSize: 15.sp,
+                                    fontSize: 16.sp,
                                     fontWeight: FontWeight.w800,
                                     color: AppColors.textPrimary,
                                     height: 1.2,
@@ -173,21 +189,21 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               SizedBox(height: 12.h),
                               _buildActionCardsHorizontalList(context),
-                              SizedBox(height: 22.h),
+                              SizedBox(height: 24.h),
                               
                               // My Active Patients section
                               _buildMyPatientsSection(),
 
                               Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 18.w),
+                                padding: EdgeInsets.symmetric(horizontal: 16.w),
                                 child: _buildSectionTitle('أحدث التنبيهات والنشاطات'),
                               ),
                               SizedBox(height: 12.h),
                               Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 18.w),
+                                padding: EdgeInsets.symmetric(horizontal: 16.w),
                                 child: _buildActivityList(),
                               ),
-                              SizedBox(height: 28.h),
+                              SizedBox(height: 32.h),
                             ],
                           ),
                         ),
@@ -201,29 +217,29 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildErrorWidget() {
     return Center(
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 36.w),
+        padding: EdgeInsets.symmetric(horizontal: 32.w),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: EdgeInsets.all(18.r),
+              padding: EdgeInsets.all(20.r),
               decoration: BoxDecoration(
-                color: Colors.amber.withValues(alpha: 0.12),
+                color: AppColors.warning.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.wifi_off_rounded, color: Colors.amber, size: 44),
+              child: const Icon(Icons.wifi_off_rounded, color: AppColors.warning, size: 44),
             ),
-            SizedBox(height: 14.h),
+            SizedBox(height: 16.h),
             Text(
               _errorMessage ?? 'حدث خطأ غير متوقع',
               style: GoogleFonts.cairo(
                 fontWeight: FontWeight.w700,
-                fontSize: 13.sp,
+                fontSize: 14.sp,
                 color: AppColors.textPrimary,
               ),
               textAlign: TextAlign.center,
             ),
-            SizedBox(height: 18.h),
+            SizedBox(height: 20.h),
             ElevatedButton.icon(
               onPressed: _loadData,
               icon: const Icon(Icons.refresh_rounded, color: Colors.white, size: 18),
@@ -231,15 +247,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 'إعادة المحاولة',
                 style: GoogleFonts.cairo(
                   fontWeight: FontWeight.w800,
-                  fontSize: 13.sp,
+                  fontSize: 14.sp,
                   color: Colors.white,
                 ),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryGreen,
                 elevation: 0,
-                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
               ),
             )
           ],
@@ -294,32 +310,17 @@ class _HomeScreenState extends State<HomeScreen> {
           // App Logo & Clean Title "طمنّي" (Right side in RTL)
           Row(
             children: [
-              Container(
-                padding: EdgeInsets.all(7.r),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12.r),
-                  border: Border.all(color: Colors.white, width: 1.2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.textPrimary.withValues(alpha: 0.03),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Image.asset(
-                  'assets/images/logo.png',
-                  width: 24.w,
-                  height: 24.w,
-                  fit: BoxFit.contain,
-                ),
+              Image.asset(
+                'assets/images/logo_icon_app-removebg-preview.png',
+                width: 38.w,
+                height: 38.w,
+                fit: BoxFit.contain,
               ),
-              SizedBox(width: 10.w),
+              SizedBox(width: 8.w),
               Text(
                 'طمنّي',
                 style: GoogleFonts.cairo(
-                  fontSize: 20.sp,
+                  fontSize: 22.sp,
                   fontWeight: FontWeight.w800,
                   color: AppColors.textPrimary,
                   letterSpacing: -0.3,
@@ -352,7 +353,7 @@ class _HomeScreenState extends State<HomeScreen> {
       duration: const Duration(milliseconds: 450),
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14.r),
+          borderRadius: BorderRadius.circular(20.r),
           boxShadow: [
             BoxShadow(
               color: AppColors.primary.withValues(alpha: 0.16),
@@ -362,65 +363,42 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(14.r),
+          borderRadius: BorderRadius.circular(20.r),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
             child: Container(
-              padding: EdgeInsets.all(18.r),
+              padding: EdgeInsets.all(20.r),
               decoration: BoxDecoration(
                 // Uniform primary brand color tint for clean Apple HIG glass appearance
                 color: AppColors.primary.withValues(alpha: 0.90),
-                borderRadius: BorderRadius.circular(14.r),
+                borderRadius: BorderRadius.circular(20.r),
                 border: Border.all(
                   color: Colors.white.withValues(alpha: 0.4),
                   width: 1.2,
                 ),
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'أهلاً بك، $pharmacistName 👋',
-                          style: GoogleFonts.cairo(
-                            fontSize: 18.sp,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                            height: 1.2,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        SizedBox(height: 6.h),
-                        Text(
-                          'نتمنى لك يوماً سعيداً ومثمراً في خدمة ورعاية المرضى 🩺✨',
-                          style: GoogleFonts.cairo(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white.withValues(alpha: 0.95),
-                            height: 1.35,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(width: 12.w),
-                  Container(
-                    padding: EdgeInsets.all(12.r),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12.r),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.4),
-                        width: 1,
-                      ),
-                    ),
-                    child: Icon(
-                      Icons.medical_services_outlined,
+                  Text(
+                    'أهلاً بك، $pharmacistName 👋',
+                    style: GoogleFonts.cairo(
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.w800,
                       color: Colors.white,
-                      size: 26.r,
+                      height: 1.2,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: 8.h),
+                  Text(
+                    'نتمنى لك يوماً سعيداً ومثمراً في خدمة ورعاية المرضى 🩺✨',
+                    style: GoogleFonts.cairo(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white.withValues(alpha: 0.95),
+                      height: 1.35,
                     ),
                   ),
                 ],
@@ -432,7 +410,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Action Rail Cards List View (Level 1, Sleek 12.r Radii)
+  /// Action Rail Cards List View (Level 1, Sleek 16.r Radii)
   Widget _buildActionCardsHorizontalList(BuildContext context) {
     final actions = [
       {
@@ -444,7 +422,7 @@ class _HomeScreenState extends State<HomeScreen> {
         'screen': const ChatListScreen()
       },
       {
-        'title': 'الإشعارات والنواقص',
+        'title': 'الإشعارات ',
         'value': '$_unreadNotificationsCount',
         'unit': 'تنبيه',
         'icon': Icons.notifications_none_rounded,
@@ -452,10 +430,10 @@ class _HomeScreenState extends State<HomeScreen> {
         'screen': const NotificationsScreen()
       },
       {
-        'title': 'التقارير اليومية',
-        'value': 'عرض',
-        'unit': 'الملف',
-        'icon': Icons.analytics_outlined,
+        'title': "التقييمات",
+        'value': '$_ratingsCount',
+        'unit': 'تقييم',
+        'icon': Icons.star_rounded,
         'color': const Color(0xFF9B59B6),
         'screen': const ReportsScreen()
       },
@@ -464,7 +442,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return SizedBox(
       height: 135.h,
       child: ListView.separated(
-        padding: EdgeInsets.symmetric(horizontal: 18.w),
+        padding: EdgeInsets.symmetric(horizontal: 16.w),
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
         clipBehavior: Clip.none,
@@ -504,9 +482,9 @@ class _HomeScreenState extends State<HomeScreen> {
         Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
       },
       child: _buildSoftGlassCard(
-        width: 115.w,
+        width: 120.w,
         padding: EdgeInsets.all(12.r),
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(16.r),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -534,11 +512,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
-            SizedBox(height: 5.h),
+            SizedBox(height: 6.h),
             Text(
               title,
               style: GoogleFonts.cairo(
-                fontSize: 11.sp,
+                fontSize: 11.5.sp,
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.w700,
                 height: 1.25,
@@ -553,7 +531,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: EdgeInsets.all(7.r),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(9.r),
+                  borderRadius: BorderRadius.circular(10.r),
                 ),
                 child: Icon(icon, color: color, size: 18.r),
               ),
@@ -564,7 +542,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Active Patients Horizontal Section (Sleek 12.r Radii)
+  /// Active Patients Horizontal Section (Sleek 16.r Radii)
   Widget _buildMyPatientsSection() {
     if (_myPatients.isEmpty) {
       return const SizedBox.shrink();
@@ -574,14 +552,14 @@ class _HomeScreenState extends State<HomeScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 18.w),
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 'مرضاي النشطين 👥',
                 style: GoogleFonts.cairo(
-                  fontSize: 15.sp,
+                  fontSize: 16.sp,
                   fontWeight: FontWeight.w800,
                   color: AppColors.textPrimary,
                 ),
@@ -605,11 +583,11 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
-        SizedBox(height: 10.h),
+        SizedBox(height: 12.h),
         SizedBox(
-          height: 88.h,
+          height: 92.h,
           child: ListView.separated(
-            padding: EdgeInsets.symmetric(horizontal: 18.w),
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
             itemCount: _myPatients.length,
@@ -633,28 +611,28 @@ class _HomeScreenState extends State<HomeScreen> {
                       Container(
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.primaryGreen, width: 1.6),
+                          border: Border.all(color: AppColors.primaryGreen, width: 1.8),
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.primaryGreen.withValues(alpha: 0.12),
-                              blurRadius: 8,
-                              offset: const Offset(0, 3),
+                              color: AppColors.primaryGreen.withValues(alpha: 0.14),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
                             ),
                           ],
                         ),
                         child: AppAvatar(
                           avatarUrl: p.avatarUrl,
                           name: p.name,
-                          radius: 24.r,
+                          radius: 26.r,
                         ),
                       ),
-                      SizedBox(height: 5.h),
+                      SizedBox(height: 6.h),
                       SizedBox(
-                        width: 68.w,
+                        width: 72.w,
                         child: Text(
                           p.name,
                           style: GoogleFonts.cairo(
-                            fontSize: 11.sp,
+                            fontSize: 11.5.sp,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary,
                           ),
@@ -670,7 +648,7 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
         ),
-        SizedBox(height: 22.h),
+        SizedBox(height: 24.h),
       ],
     );
   }
@@ -679,23 +657,30 @@ class _HomeScreenState extends State<HomeScreen> {
     return Text(
       title,
       style: GoogleFonts.cairo(
-        fontSize: 15.sp,
+        fontSize: 16.sp,
         fontWeight: FontWeight.w800,
         color: AppColors.textPrimary,
       ),
     );
   }
 
-  /// Activity List View (Level 1 Cards, Sleek 12.r Radii)
+  /// Activity List View (Level 1 Cards, Sleek 16.r Radii)
   Widget _buildActivityList() {
     if (_recentNotifications.isEmpty) {
       return Center(
         child: Container(
-          padding: EdgeInsets.symmetric(vertical: 22.h, horizontal: 16.w),
+          padding: EdgeInsets.symmetric(vertical: 24.h, horizontal: 16.w),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.75),
-            borderRadius: BorderRadius.circular(14.r),
+            color: Colors.white.withValues(alpha: 0.85),
+            borderRadius: BorderRadius.circular(16.r),
             border: Border.all(color: Colors.white, width: 1.2),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF1A1D26).withValues(alpha: 0.04),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: Column(
             children: [
@@ -711,21 +696,21 @@ class _HomeScreenState extends State<HomeScreen> {
                   size: 32.r,
                 ),
               ),
-              SizedBox(height: 10.h),
+              SizedBox(height: 12.h),
               Text(
                 'كل شيء منظم تماماً 🎉',
                 style: GoogleFonts.cairo(
-                  fontSize: 13.sp,
+                  fontSize: 14.sp,
                   color: AppColors.textPrimary,
                   fontWeight: FontWeight.w800,
                 ),
                 textAlign: TextAlign.center,
               ),
-              SizedBox(height: 3.h),
+              SizedBox(height: 4.h),
               Text(
                 'لا توجد تنبيهات جديدة تتطلب اتخاذ إجراء حالياً',
                 style: GoogleFonts.cairo(
-                  fontSize: 11.sp,
+                  fontSize: 12.sp,
                   color: AppColors.textSecondary,
                   fontWeight: FontWeight.w500,
                 ),
@@ -741,7 +726,7 @@ class _HomeScreenState extends State<HomeScreen> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: _recentNotifications.length,
-      separatorBuilder: (context, index) => SizedBox(height: 10.h),
+      separatorBuilder: (context, index) => SizedBox(height: 12.h),
       itemBuilder: (context, index) {
         final item = _recentNotifications[index];
         return FadeInRight(
@@ -786,19 +771,19 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return _buildSoftGlassCard(
-      padding: EdgeInsets.all(12.r),
-      borderRadius: BorderRadius.circular(12.r),
+      padding: EdgeInsets.all(14.r),
+      borderRadius: BorderRadius.circular(16.r),
       child: Row(
         children: [
           Container(
-            padding: EdgeInsets.all(9.r),
+            padding: EdgeInsets.all(10.r),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10.r),
+              borderRadius: BorderRadius.circular(12.r),
             ),
-            child: Icon(icon, color: color, size: 18.r),
+            child: Icon(icon, color: color, size: 20.r),
           ),
-          SizedBox(width: 10.w),
+          SizedBox(width: 12.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -809,7 +794,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Text(
                         title,
                         style: GoogleFonts.cairo(
-                          fontSize: 12.sp,
+                          fontSize: 13.sp,
                           fontWeight: FontWeight.w700,
                           color: AppColors.textPrimary,
                         ),
@@ -819,8 +804,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     SizedBox(width: 6.w),
                     Container(
-                      width: 5.r,
-                      height: 5.r,
+                      width: 6.r,
+                      height: 6.r,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: color,
@@ -828,11 +813,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
                 ),
-                SizedBox(height: 2.h),
+                SizedBox(height: 3.h),
                 Text(
                   subtitle,
                   style: GoogleFonts.cairo(
-                    fontSize: 10.5.sp,
+                    fontSize: 11.sp,
                     color: AppColors.textSecondary,
                     fontWeight: FontWeight.w500,
                   ),
@@ -846,7 +831,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Text(
             time,
             style: GoogleFonts.cairo(
-              fontSize: 10.5.sp,
+              fontSize: 11.sp,
               color: AppColors.textSecondary.withValues(alpha: 0.75),
               fontWeight: FontWeight.w700,
             ),
@@ -871,9 +856,9 @@ class _HomeScreenState extends State<HomeScreen> {
         border: Border.all(color: Colors.white, width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF1A1D26).withValues(alpha: 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
+            color: const Color(0xFF1A1D26).withValues(alpha: 0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),

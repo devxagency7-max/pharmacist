@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:pharmacist/core/constants/api_constants.dart';
 import 'package:pharmacist/core/network/api_client.dart';
 import 'package:pharmacist/features/devices/data/services/device_push_service.dart';
@@ -74,6 +75,83 @@ class AuthRepositoryImpl implements AuthRepository {
         return await _getProfile();
       }
     } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
+  Future<UserEntity> signInWithGoogle() async {
+    debugPrint('==================================================');
+    debugPrint('🔑 [GoogleSignIn] 1. Starting Google Sign-In flow...');
+    try {
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        serverClientId: '886370477326-tcv4amt1iqd36nh278te98rafi30nd03.apps.googleusercontent.com',
+      );
+      debugPrint('🔑 [GoogleSignIn] 2. Cleaning previous session (signOut)...');
+      await googleSignIn.signOut();
+
+      debugPrint('🔑 [GoogleSignIn] 3. Launching Google Account Picker dialog...');
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+
+      if (googleUser == null) {
+        debugPrint('⚠️ [GoogleSignIn] 3.1. User canceled account selection dialog.');
+        throw Exception('تم إلغاء عملية التسجيل بواسطة Google');
+      }
+
+      debugPrint('✅ [GoogleSignIn] 4. Google Account Selected:');
+      debugPrint('   - Email: ${googleUser.email}');
+      debugPrint('   - Display Name: ${googleUser.displayName}');
+      debugPrint('   - ID: ${googleUser.id}');
+      debugPrint('   - Photo URL: ${googleUser.photoUrl}');
+
+      debugPrint('🔑 [GoogleSignIn] 5. Requesting authentication tokens (ID Token & Access Token)...');
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      
+      debugPrint('   - AccessToken present: ${googleAuth.accessToken != null}');
+      debugPrint('   - IDToken present: ${googleAuth.idToken != null}');
+      if (googleAuth.idToken != null) {
+        debugPrint('   - IDToken prefix: ${googleAuth.idToken!.substring(0, (googleAuth.idToken!.length > 20 ? 20 : googleAuth.idToken!.length))}...');
+      }
+
+      debugPrint('🔑 [GoogleSignIn] 6. Creating Firebase OAuthCredential...');
+      final OAuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      debugPrint('🔑 [GoogleSignIn] 7. Authenticating with Firebase Auth using credential...');
+      final userCredential = await _firebaseAuth.signInWithCredential(credential);
+      final user = userCredential.user;
+
+      debugPrint('✅ [GoogleSignIn] 8. Firebase Authentication Success:');
+      debugPrint('   - Firebase UID: ${user?.uid}');
+      debugPrint('   - Firebase Email: ${user?.email}');
+      debugPrint('   - Firebase Phone: ${user?.phoneNumber}');
+      debugPrint('   - Firebase Display Name: ${user?.displayName}');
+
+      final String email = user?.email ?? googleUser.email;
+      final String name = user?.displayName ?? googleUser.displayName ?? 'Pharmacist User';
+      final String displayName = name.split(' ').first;
+
+      debugPrint('🔑 [GoogleSignIn] 9. Syncing user with backend API (_syncUser)...');
+      final syncedUser = await _syncUser(
+        email: email,
+        name: name,
+        displayName: displayName,
+        phoneNumber: user?.phoneNumber,
+      );
+
+      debugPrint('🎉 [GoogleSignIn] 10. Google Sign-In Flow Completed Successfully!');
+      debugPrint('   - User ID: ${syncedUser.id}');
+      debugPrint('   - User Name: ${syncedUser.name}');
+      debugPrint('   - User Roles: ${syncedUser.roles}');
+      debugPrint('==================================================');
+
+      return syncedUser;
+    } catch (e, stackTrace) {
+      debugPrint('❌ [GoogleSignIn Exception]: $e');
+      debugPrint('❌ [GoogleSignIn StackTrace]:\n$stackTrace');
+      debugPrint('==================================================');
       rethrow;
     }
   }

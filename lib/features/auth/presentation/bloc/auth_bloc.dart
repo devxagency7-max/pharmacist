@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/repositories/auth_repository.dart';
 import 'auth_event.dart';
@@ -9,6 +10,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   AuthBloc(this._authRepository) : super(AuthInitial()) {
     on<AppStarted>(_onAppStarted);
     on<LoginSubmitted>(_onLoginSubmitted);
+    on<GoogleSignInSubmitted>(_onGoogleSignInSubmitted);
     on<SignUpSubmitted>(_onSignUpSubmitted);
     on<CompleteProfileSubmitted>(_onCompleteProfileSubmitted);
     on<LogoutRequested>(_onLogoutRequested);
@@ -66,6 +68,24 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       emit(AuthAuthenticated(user));
     } catch (e) {
       emit(AuthError(e.toString()));
+    }
+  }
+
+  Future<void> _onGoogleSignInSubmitted(
+    GoogleSignInSubmitted event,
+    Emitter<AuthState> emit,
+  ) async {
+    debugPrint('⚡ [AuthBloc] GoogleSignInSubmitted event received -> Emitting AuthLoading()');
+    emit(AuthLoading());
+    try {
+      final user = await _authRepository.signInWithGoogle();
+      debugPrint('⚡ [AuthBloc] GoogleSignIn Success -> Emitting AuthAuthenticated(user: ${user.name})');
+      emit(AuthAuthenticated(user));
+    } catch (e, st) {
+      final msg = e.toString().replaceAll('Exception: ', '');
+      debugPrint('⚡ [AuthBloc Error] GoogleSignIn Failed -> Emitting AuthError("$msg")');
+      debugPrint('⚡ [AuthBloc Error StackTrace]: $st');
+      emit(AuthError(msg));
     }
   }
 

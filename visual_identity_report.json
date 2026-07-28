@@ -1,6 +1,212 @@
 {
+  "report_metadata": {
+    "title": "تقرير الهوية البصرية لبروجكت طمني (Tamenny Patient App)",
+    "generated_at": "2026-07-28",
+    "project_path": "D:\\tameny\\patient",
+    "version": "2.0",
+    "platform": "Flutter",
+    "architecture": "Feature First + Clean Architecture"
+  },
+  "project_info": {
+    "app_name_ar": "طمني",
+    "app_name_en": "Tamenny (PharmaCare Patient)",
+    "default_locale": "ar_EG",
+    "text_direction": "RTL",
+    "design_canvas_size": {
+      "width": 375,
+      "height": 812,
+      "device_target": "iPhone / Mobile Standard"
+    },
+    "status_bar_style": {
+      "color": "transparent",
+      "icon_brightness": "dark"
+    }
+  },
+  "brand_identity": {
+    "personality_traits": [
+      "Modern (عصري)",
+      "Premium (فاخر/عالي الجودة)",
+      "Clean (نظيف وبسيط)",
+      "Friendly (ودود)",
+      "Smart (ذكي)",
+      "Human (إنساني)",
+      "Trustworthy (موثوق)",
+      "Fast (سريع)",
+      "Minimal (مبسط)",
+      "Future-ready (مستقبلي)"
+    ],
+    "design_principles": [
+      "لا توجد عناصر مضافة لمجرد الزينة (No purely decorative elements)",
+      "لكل عنصر وظيفة، ولكل مساحة هدف، ولكل لون معنى",
+      "واجهة المستخدم تعكس منتجاً احترافياً طليعياً وليست مجرد تطبيق عادي",
+      "استخدام الهندسة الناعمة (Soft Geometry) والاهتمام بالمساحات البيضاء (White Space)"
+    ]
+  },
+  "color_system": {
+    "primary_brand_colors": {
+      "primary_blue": {
+        "hex": "#4A90E2",
+        "spec_hex": "#5A97DF",
+        "description": "اللون الأزرق السماوي الأساسي للهوية"
+      },
+      "primary_green": {
+        "hex": "#2ECC71",
+        "spec_hex": "#08C75A",
+        "description": "اللون الأخضر الزمردي الداعم (Emerald Green)"
+      },
+      "primary_light": {
+        "hex": "#EBF1FC",
+        "description": "خلفية زرقاء ثلجية فاتحة (Icy Blue Background)"
+      },
+      "primary_mint": {
+        "hex": "#EAF8F0",
+        "description": "أخضر نعناعي ثانوي (Mint Green Accent)"
+      },
+      "primary_dark": {
+        "hex": "#2D5C91",
+        "description": "أزرق داكن بدرجة عميقة"
+      }
+    },
+    "status_and_feedback_colors": {
+      "success": "#2ECC71",
+      "error_danger": "#FF4757",
+      "warning": "#FFBE21",
+      "info": "#4A90E2"
+    },
+    "surface_and_background_colors": {
+      "background": "#EBF1FC",
+      "card_surface": "#FFFFFF",
+      "white": "#FFFFFF"
+    },
+    "typography_colors": {
+      "text_primary": "#1A1D26",
+      "text_secondary": "#64748B",
+      "text_white": "#FFFFFF"
+    },
+    "gradients": {
+      "primary_gradient": {
+        "colors": ["#4A90E2", "#357ABD"],
+        "begin": "topLeft",
+        "end": "bottomRight"
+      },
+      "mesh_blue": {
+        "colors": ["#4A90E2", "#EBF1FC"]
+      },
+      "glass_gradient": {
+        "type": "White to White Glassmorphism"
+      }
+    }
+  },
+  "typography_system": {
+    "primary_font_family_ar": "Cairo (Google Fonts)",
+    "secondary_font_family_en": "Poppins (Google Fonts)",
+    "custom_font_family": "Lafeef (assets/fonts/lafeef-regular.otf)",
+    "allowed_weights": [
+      "Regular (w400)",
+      "Medium (w500)",
+      "SemiBold (w600)",
+      "Bold (w700)",
+      "ExtraBold (w800)"
+    ],
+    "line_height_range": "120% - 150%",
+    "text_styles": {
+      "headline_large": { "fontSize": 28, "fontWeight": "w800 (ExtraBold)", "color": "textPrimary (#1A1D26)", "fontFamily": "Cairo" },
+      "headline_medium": { "fontSize": 24, "fontWeight": "w700 (Bold)", "color": "textPrimary (#1A1D26)", "fontFamily": "Cairo" },
+      "headline_small": { "fontSize": 20, "fontWeight": "w700 (Bold)", "color": "textPrimary (#1A1D26)", "fontFamily": "Cairo" },
+      "title_large": { "fontSize": 18, "fontWeight": "w600 (SemiBold)", "color": "textPrimary (#1A1D26)", "fontFamily": "Cairo" },
+      "title_medium": { "fontSize": 16, "fontWeight": "w500 (Medium)", "color": "textSecondary (#64748B)", "fontFamily": "Poppins" },
+      "body_large": { "fontSize": 16, "fontWeight": "w400 (Regular)", "color": "textPrimary (#1A1D26)", "fontFamily": "Cairo" },
+      "body_medium": { "fontSize": 14, "fontWeight": "w400 (Regular)", "color": "textSecondary (#64748B)", "fontFamily": "Cairo" },
+      "body_small": { "fontSize": 13, "fontWeight": "w400 (Regular)", "color": "textSecondary (#64748B)", "fontFamily": "Poppins" },
+      "label_large": { "fontSize": 16, "fontWeight": "w700 (Bold)", "color": "textWhite (#FFFFFF)", "fontFamily": "Cairo" }
+    }
+  },
+  "geometry_and_layout": {
+    "geometry_style": "Soft Geometry (الحواف المنحنية)",
+    "corner_radius": {
+      "cards": "16px - 24px",
+      "buttons": "14px - 18px",
+      "inputs": "14px",
+      "dialogs": "24px",
+      "bottom_sheets": "28px"
+    },
+    "grid_layout_system": {
+      "base_grid": "8pt Grid System",
+      "spacing_scale": [4, 8, 12, 16, 20, 24, 32, 40, 48, 64],
+      "rule": "عدم استخدام قيم مسافات عشوائية"
+    },
+    "depth_and_elevation": {
+      "style": "Ultra-soft Depth (ظلال فائقة النعومة)",
+      "shadow_spec": {
+        "opacity": "6%",
+        "blur": 20,
+        "x_offset": 0,
+        "y_offset": 8
+      },
+      "max_elevation_levels": 3,
+      "levels": {
+        "level_0": "Background (#EBF1FC)",
+        "level_1": "Cards & Containers (#FFFFFF)",
+        "level_2": "Floating Components & Dialogs"
+      }
+    },
+    "glassmorphism_rules": {
+      "blur": 12,
+      "opacity": "8%",
+      "border": "White 15%"
+    }
+  },
+  "iconography_and_assets": {
+    "icon_style": {
+      "style": "Outline (حدود خارجية)",
+      "corners": "Rounded (حواف منحنية)",
+      "stroke_width": "2px",
+      "rule": "عدم الخلط بين الأيقونات المملوءة (Filled) والمخططة (Outline)"
+    },
+    "assets_inventory": {
+      "logo_image": "assets/images/logo.png / logo.jpg",
+      "app_launcher_icon": "assets/images/logo_icon_app.jpg",
+      "app_launcher_icon_no_bg": "assets/images/logo_icon_app-removebg-preview.png",
+      "custom_font": "assets/fonts/lafeef-regular.otf"
+    }
+  },
+  "component_styling_specifications": {
+    "buttons": {
+      "elevated_button": {
+        "background_color": "#4A90E2",
+        "text_color": "#FFFFFF",
+        "border_radius": "16px",
+        "padding": "horizontal: 32, vertical: 16",
+        "elevation": 0
+      },
+      "outlined_button": {
+        "text_color": "#1A1D26",
+        "border_color": "#FFFFFF",
+        "border_width": 2,
+        "border_radius": "16px",
+        "padding": "horizontal: 32, vertical: 16"
+      }
+    },
+    "cards": {
+      "background_color": "#FFFFFF",
+      "elevation": 0,
+      "border_radius": "16px"
+    },
+    "app_bar": {
+      "background_color": "#EBF1FC",
+      "foreground_color": "#1A1D26",
+      "elevation": 0,
+      "center_title": true
+    }
+  },
+  "codebase_files_mapping": {
+    "color_constants": "lib/core/constants/app_colors.dart",
+    "assets_constants": "lib/core/constants/app_assets.dart",
+    "theme_configuration": "lib/app/theme/app_theme.dart",
+    "rebrand_spec_json": "Tamenny_UI_Rebrand_Spec.json"
+  },
   "meta": {
-    "project": "Tamenny Patient",
+    "project": "Tamenny Pharmacist",
     "version": "2.0",
     "objective": "Full Visual Branding Protocol & Specification",
     "platform": "Flutter",
@@ -58,18 +264,7 @@
     },
     "4_layout_system": {
       "grid_base": "8pt Grid",
-      "spacing_scale": [
-        4,
-        8,
-        12,
-        16,
-        20,
-        24,
-        32,
-        40,
-        48,
-        64
-      ],
+      "spacing_scale": [4, 8, 12, 16, 20, 24, 32, 40, 48, 64],
       "rule": "Never use random spacing values"
     },
     "5_depth_system": {
@@ -139,13 +334,7 @@
       "rule": "Do not mix Filled and Outline icons"
     },
     "11_illustration_style": {
-      "allowed_styles": [
-        "Flat",
-        "Gradient",
-        "Minimal",
-        "3D Soft",
-        "Glass"
-      ],
+      "allowed_styles": ["Flat", "Gradient", "Minimal", "3D Soft", "Glass"],
       "rule": "Maintain visual consistency; do not mix more than 1 style across the app"
     },
     "12_image_style": {
@@ -213,16 +402,8 @@
       ]
     },
     "17_motion_language": {
-      "durations": [
-        "200ms",
-        "250ms",
-        "300ms"
-      ],
-      "easing_curves": [
-        "Ease Out",
-        "Ease In Out",
-        "Spring"
-      ],
+      "durations": ["200ms", "250ms", "300ms"],
+      "easing_curves": ["Ease Out", "Ease In Out", "Spring"],
       "rule": "No bounce unless explicitly appropriate for the context"
     },
     "18_transition_rules": {

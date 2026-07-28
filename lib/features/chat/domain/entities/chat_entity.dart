@@ -43,6 +43,8 @@ class MessageEntity {
     required this.createdAt,
   });
 
+  bool get isImage => messageType == 'Image';
+
   MessageEntity copyWith({bool? isRead, DateTime? readAt}) {
     return MessageEntity(
       id: id,

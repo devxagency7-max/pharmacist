@@ -8,6 +8,8 @@ class LoginSubmitted extends AuthEvent {
   LoginSubmitted({required this.email, required this.password});
 }
 
+class GoogleSignInSubmitted extends AuthEvent {}
+
 class SignUpSubmitted extends AuthEvent {
   final String email;
   final String password;

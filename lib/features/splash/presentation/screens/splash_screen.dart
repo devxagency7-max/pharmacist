@@ -116,28 +116,10 @@ class _SplashScreenState extends State<SplashScreen> {
                       fit: BoxFit.contain,
                     ),
                   ),
-                  SizedBox(height: 40.h),
-                  FadeInUp(
-                    duration: const Duration(milliseconds: 800),
-                    child: Text(
-                      'Tamenny Pharma',
-                      style: GoogleFonts.poppins(
-                        fontSize: 32.sp,
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.textPrimary,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 8.h),
+                 
                   
                   const Spacer(flex: 2),
-                  FadeIn(
-                    child: CircularProgressIndicator(
-                      color: AppColors.primaryGreen,
-                      strokeWidth: 3,
-                    ),
-                  ),
+                  
                   SizedBox(height: 60.h),
                 ],
               ),

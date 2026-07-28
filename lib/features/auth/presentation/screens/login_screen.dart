@@ -5,6 +5,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmacist/core/constants/app_colors.dart';
+import 'package:pharmacist/core/di/injection_container.dart';
+import 'package:pharmacist/features/auth/domain/entities/user_entity.dart';
+import 'package:pharmacist/features/auth/domain/repositories/auth_repository.dart';
+import 'package:pharmacist/features/auth/presentation/screens/application_status_screen.dart';
 import 'package:pharmacist/features/home/presentation/screens/main_screen.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
@@ -30,6 +34,44 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  Future<void> _handleAuthenticatedUser(BuildContext context, UserEntity user) async {
+    final roles = user.roles;
+    if (roles.contains('Pharmacist') ||
+        roles.contains('PharmacyIntern') ||
+        roles.contains('PharmacyOwner')) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const MainScreen()),
+      );
+      return;
+    }
+
+    try {
+      final application = await getIt<AuthRepository>().getApplicationStatus();
+      if (!context.mounted) return;
+      if (application != null) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ApplicationStatusScreen(initialApplication: application),
+          ),
+        );
+        return;
+      }
+    } catch (_) {}
+
+    if (!context.mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SignUpScreen(
+          initialName: user.name,
+          initialEmail: user.email,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -37,20 +79,7 @@ class _LoginScreenState extends State<LoginScreen> {
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthAuthenticated) {
-            final roles = state.user.roles;
-            if (roles.contains('Pharmacist') ||
-                roles.contains('PharmacyIntern') ||
-                roles.contains('PharmacyOwner')) {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const MainScreen()),
-              );
-            } else {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const SignUpScreen()),
-              );
-            }
+            _handleAuthenticatedUser(context, state.user);
           } else if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.message)),
@@ -62,7 +91,7 @@ class _LoginScreenState extends State<LoginScreen> {
             _buildBackgroundMesh(),
             SafeArea(
               child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
+                physics: const NeverScrollableScrollPhysics(),
                 child: Column(
                   children: [
                     _buildHeader(),
@@ -78,16 +107,14 @@ class _LoginScreenState extends State<LoginScreen> {
                               child: Text(
                                 'مرحباً بك مجدداً',
                                 style: GoogleFonts.cairo(
-                                  fontSize: 32.sp,
+                                  fontSize: 26.sp,
                                   fontWeight: FontWeight.w900,
                                   color: AppColors.textPrimary,
                                   letterSpacing: -0.5,
                                 ),
                               ),
                             ),
-                            SizedBox(height: 8.h),
-                            
-                            SizedBox(height: 40.h),
+                            SizedBox(height: 16.h),
                             
                             FadeInUp(
                               delay: const Duration(milliseconds: 200),
@@ -102,7 +129,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 },
                               ),
                             ),
-                            SizedBox(height: 20.h),
+                            SizedBox(height: 14.h),
                             FadeInUp(
                               delay: const Duration(milliseconds: 300),
                               child: _buildGlassTextField(
@@ -118,7 +145,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                             
-                            SizedBox(height: 12.h),
+                            SizedBox(height: 8.h),
                             Align(
                               alignment: Alignment.centerLeft,
                               child: TextButton(
@@ -133,36 +160,48 @@ class _LoginScreenState extends State<LoginScreen> {
                                   style: GoogleFonts.cairo(
                                     color: AppColors.primaryGreen,
                                     fontWeight: FontWeight.w800,
-                                    fontSize: 14.sp,
+                                    fontSize: 13.sp,
                                   ),
                                 ),
                               ),
                             ),
                             
-                            SizedBox(height: 40.h),
-                            
+                            SizedBox(height: 20.h),
                             FadeInUp(
                               delay: const Duration(milliseconds: 400),
                               child: BlocBuilder<AuthBloc, AuthState>(
                                 builder: (context, state) {
-                                  return _buildGlassButton(
-                                    label: state is AuthLoading ? 'جاري التحميل...' : 'تسجيل الدخول',
-                                    onPressed: state is AuthLoading ? () {} : () {
-                                      if (_formKey.currentState!.validate()) {
-                                        context.read<AuthBloc>().add(
-                                          LoginSubmitted(
-                                            email: _emailController.text.trim(),
-                                            password: _passwordController.text,
-                                          ),
-                                        );
-                                      }
-                                    },
+                                  return Column(
+                                    children: [
+                                      _buildGlassButton(
+                                        label: state is AuthLoading ? 'جاري التحميل...' : 'تسجيل الدخول',
+                                        onPressed: state is AuthLoading ? () {} : () {
+                                          if (_formKey.currentState!.validate()) {
+                                            context.read<AuthBloc>().add(
+                                              LoginSubmitted(
+                                                email: _emailController.text.trim(),
+                                                password: _passwordController.text,
+                                              ),
+                                            );
+                                          }
+                                        },
+                                      ),
+                                      SizedBox(height: 12.h),
+                                      _buildDivider(),
+                                      SizedBox(height: 12.h),
+                                      _buildGoogleButton(
+                                        isLoading: state is AuthLoading,
+                                        onPressed: () {
+                                          context.read<AuthBloc>().add(GoogleSignInSubmitted());
+                                        },
+                                      ),
+                                    ],
                                   );
                                 },
                               ),
                             ),
                             
-                            SizedBox(height: 30.h),
+                            SizedBox(height: 20.h),
                             
                             FadeInUp(
                               delay: const Duration(milliseconds: 500),
@@ -171,7 +210,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 children: [
                                   Text(
                                     'ليس لديك حساب؟ ',
-                                    style: GoogleFonts.cairo(color: AppColors.textSecondary, fontSize: 15.sp, fontWeight: FontWeight.w600),
+                                    style: GoogleFonts.cairo(color: AppColors.textSecondary, fontSize: 14.sp, fontWeight: FontWeight.w600),
                                   ),
                                   GestureDetector(
                                     onTap: () {
@@ -185,14 +224,14 @@ class _LoginScreenState extends State<LoginScreen> {
                                       style: GoogleFonts.cairo(
                                         color: AppColors.primaryGreen,
                                         fontWeight: FontWeight.w900,
-                                        fontSize: 15.sp,
+                                        fontSize: 14.sp,
                                       ),
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                            SizedBox(height: 40.h),
+                            SizedBox(height: 16.h),
                           ],
                         ),
                       ),
@@ -351,6 +390,78 @@ class _LoginScreenState extends State<LoginScreen> {
               fontSize: 18.sp,
               fontWeight: FontWeight.w900,
               color: Colors.white,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return Row(
+      children: [
+        Expanded(child: Divider(color: AppColors.textSecondary.withOpacity(0.3), thickness: 1)),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          child: Text(
+            'أو',
+            style: GoogleFonts.cairo(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.bold,
+              fontSize: 14.sp,
+            ),
+          ),
+        ),
+        Expanded(child: Divider(color: AppColors.textSecondary.withOpacity(0.3), thickness: 1)),
+      ],
+    );
+  }
+
+  Widget _buildGoogleButton({required VoidCallback onPressed, bool isLoading = false}) {
+    return GestureDetector(
+      onTap: isLoading ? null : onPressed,
+      child: Container(
+        width: double.infinity,
+        height: 58.h,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.9),
+          borderRadius: BorderRadius.circular(20.r),
+          border: Border.all(color: Colors.white, width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20.r),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  'assets/images/google.png',
+                  width: 24.w,
+                  height: 24.h,
+                  errorBuilder: (context, error, stackTrace) => Icon(
+                    Icons.g_mobiledata_rounded,
+                    color: Colors.red.shade600,
+                    size: 32.r,
+                  ),
+                ),
+                SizedBox(width: 12.w),
+                Text(
+                  isLoading ? 'جاري الاتصال بـ Google...' : 'متابعة باستخدام Google',
+                  style: GoogleFonts.cairo(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
             ),
           ),
         ),

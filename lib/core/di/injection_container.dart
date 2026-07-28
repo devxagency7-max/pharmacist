@@ -141,6 +141,7 @@ Future<void> setupInjection() async {
     (conversationId, initialIsClosed) => ChatDetailBloc(
       getIt(),
       getIt(),
+      getIt(),
       conversationId,
       initialIsClosed: initialIsClosed ?? false,
     ),

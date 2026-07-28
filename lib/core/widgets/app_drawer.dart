@@ -16,6 +16,7 @@ import 'package:pharmacist/features/patients/presentation/screens/patients_scree
 import 'package:pharmacist/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pharmacist/core/di/injection_container.dart';
+import 'package:pharmacist/core/widgets/app_avatar.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -92,17 +93,6 @@ class AppDrawer extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(builder: (context) => const PatientsScreen()),
-                          );
-                        },
-                      ),
-                      _buildDrawerItem(
-                        icon: Icons.medication_liquid_rounded,
-                        title: 'أرشيف الروشتات',
-                        onTap: () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const MedicationsScreen()),
                           );
                         },
                       ),
@@ -246,9 +236,6 @@ class AppDrawer extends StatelessWidget {
 
     final firebaseAuth = getIt<FirebaseAuth>();
     final photoUrl = firebaseAuth.currentUser?.photoURL;
-    final avatarImage = (photoUrl != null && photoUrl.isNotEmpty)
-        ? NetworkImage(photoUrl)
-        : const NetworkImage('https://avatar.iran.liara.run/public/boy') as ImageProvider;
 
     String displayName = 'صيدلي طمنّي';
     if (user != null) {
@@ -278,9 +265,10 @@ class AppDrawer extends StatelessWidget {
               ),
             ],
           ),
-          child: CircleAvatar(
+          child: AppAvatar(
+            avatarUrl: photoUrl,
+            name: displayName,
             radius: 26.r,
-            backgroundImage: avatarImage,
           ),
         ),
         SizedBox(width: 15.w),

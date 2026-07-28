@@ -18,6 +18,8 @@ abstract class AuthRepository {
     String? phoneNumber,
   });
 
+  Future<UserEntity> signInWithGoogle();
+
   Future<void> completeProfile({
     required String name,
   });

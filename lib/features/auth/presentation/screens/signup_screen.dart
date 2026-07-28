@@ -13,6 +13,7 @@ import 'package:pharmacist/core/network/file_upload_service.dart';
 import 'package:pharmacist/features/auth/domain/repositories/auth_repository.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
+import '../bloc/auth_state.dart';
 import 'application_status_screen.dart';
 import 'login_screen.dart';
 
@@ -35,7 +36,16 @@ const Map<String, String> _docNames = {
 };
 
 class SignUpScreen extends StatefulWidget {
-  const SignUpScreen({super.key});
+  final String? initialName;
+  final String? initialEmail;
+  final String? initialPhone;
+
+  const SignUpScreen({
+    super.key,
+    this.initialName,
+    this.initialEmail,
+    this.initialPhone,
+  });
 
   @override
   State<SignUpScreen> createState() => _SignUpScreenState();
@@ -68,6 +78,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
   int _currentStep = 0;
   bool _isLoading = false;
   String _loadingMessage = '';
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialName != null && widget.initialName!.isNotEmpty) {
+      _nameController.text = widget.initialName!;
+    }
+    if (widget.initialEmail != null && widget.initialEmail!.isNotEmpty) {
+      _emailController.text = widget.initialEmail!;
+    }
+    if (widget.initialPhone != null && widget.initialPhone!.isNotEmpty) {
+      _phoneController.text = widget.initialPhone!;
+    }
+  }
 
   @override
   void dispose() {
@@ -104,8 +128,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
         _showSnackBar('يرجى إدخال البريد الإلكتروني');
         return false;
       }
-      if (_passwordController.text.length < 6) {
+      if (FirebaseAuth.instance.currentUser == null && _passwordController.text.length < 6) {
         _showSnackBar('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+        return false;
+      }
+    } else if (_currentStep == 2) {
+      final missingDocs = _selectedFiles.entries
+          .where((e) => e.value == null)
+          .map((e) => _docNames[e.key] ?? e.key)
+          .toList();
+      if (missingDocs.isNotEmpty) {
+        _showSnackBar('يرجى رفع المستندات الإلزامية التالية أولاً:\n• ${missingDocs.join("\n• ")}');
         return false;
       }
     }
@@ -149,33 +182,40 @@ class _SignUpScreenState extends State<SignUpScreen> {
       final authRepo = getIt<AuthRepository>();
       final fileUploadService = getIt<FileUploadService>();
 
-      // 1. Firebase SignUp + Sync
-      setState(() {
-        _loadingMessage = 'جاري إنشاء حسابك الإلكتروني...';
-      });
-      try {
-        await authRepo.signUp(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-          name: _nameController.text.trim(),
-          displayName: _nameController.text.trim().split(' ').first,
-          phoneNumber: _phoneController.text.trim(),
-        );
-      } on FirebaseAuthException catch (e) {
-        // Account already exists — most likely a retry after a previous
-        // attempt failed partway through (e.g. during document upload).
-        // Resume by signing in instead of starting over from scratch.
-        if (e.code == 'email-already-in-use') {
-          await authRepo.login(
+      // 1. Firebase SignUp / Update Profile Sync
+      if (FirebaseAuth.instance.currentUser == null) {
+        setState(() {
+          _loadingMessage = 'جاري إنشاء حسابك الإلكتروني...';
+        });
+        try {
+          await authRepo.signUp(
             email: _emailController.text.trim(),
             password: _passwordController.text,
             name: _nameController.text.trim(),
             displayName: _nameController.text.trim().split(' ').first,
             phoneNumber: _phoneController.text.trim(),
           );
-        } else {
-          rethrow;
+        } on FirebaseAuthException catch (e) {
+          if (e.code == 'email-already-in-use') {
+            await authRepo.login(
+              email: _emailController.text.trim(),
+              password: _passwordController.text,
+              name: _nameController.text.trim(),
+              displayName: _nameController.text.trim().split(' ').first,
+              phoneNumber: _phoneController.text.trim(),
+            );
+          } else {
+            rethrow;
+          }
         }
+      } else {
+        setState(() {
+          _loadingMessage = 'جاري مزامنة بيانات حسابك...';
+        });
+        await authRepo.updateProfile(
+          name: _nameController.text.trim(),
+          phoneNumber: _phoneController.text.trim(),
+        );
       }
 
       // 2. Submit professional application
@@ -296,6 +336,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   // --- STEP 0: Account Details ---
   Widget _buildStep0AccountInfo() {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final isGoogleUser = currentUser != null;
+
     return Column(
       key: const ValueKey(0),
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -315,7 +358,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
         FadeInDown(
           delay: const Duration(milliseconds: 100),
           child: Text(
-            'أدخل بياناتك الشخصية الأساسية لإنشاء الحساب',
+            isGoogleUser
+                ? 'تم ربط حسابك بـ Google، يرجى إكمال رقم الهاتف والبيانات المهنية'
+                : 'أدخل بياناتك الشخصية الأساسية لإنشاء الحساب',
             style: GoogleFonts.cairo(
               fontSize: 14.sp,
               color: AppColors.textSecondary,
@@ -323,7 +368,65 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ),
           ),
         ),
-        SizedBox(height: 24.h),
+        SizedBox(height: 16.h),
+        if (isGoogleUser)
+          FadeInDown(
+            delay: const Duration(milliseconds: 150),
+            child: Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(12.w),
+              margin: EdgeInsets.only(bottom: 16.h),
+              decoration: BoxDecoration(
+                color: AppColors.primaryGreen.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(16.r),
+                border: Border.all(color: AppColors.primaryGreen.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  Image.asset(
+                    'assets/images/google.png',
+                    width: 22.w,
+                    height: 22.h,
+                    errorBuilder: (context, error, stackTrace) => Icon(
+                      Icons.check_circle_rounded,
+                      color: AppColors.primaryGreen,
+                      size: 22.r,
+                    ),
+                  ),
+                  SizedBox(width: 10.w),
+                  Expanded(
+                    child: Text(
+                      'مسجل بحساب: ${currentUser.email ?? ""}',
+                      style: GoogleFonts.cairo(
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryGreen,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        if (!isGoogleUser) ...[
+          FadeInRight(
+            delay: const Duration(milliseconds: 150),
+            child: _buildGoogleSignUpButton(),
+          ),
+          SizedBox(height: 16.h),
+          Row(
+            children: [
+              Expanded(child: Divider(color: AppColors.textSecondary.withOpacity(0.3))),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12.w),
+                child: Text('أو ادخل بياناتك يدوياً', style: GoogleFonts.cairo(color: AppColors.textSecondary, fontSize: 12.sp, fontWeight: FontWeight.bold)),
+              ),
+              Expanded(child: Divider(color: AppColors.textSecondary.withOpacity(0.3))),
+            ],
+          ),
+          SizedBox(height: 16.h),
+        ],
         FadeInRight(
           delay: const Duration(milliseconds: 150),
           child: _buildGlassTextField(
@@ -354,17 +457,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
             icon: Icons.email_outlined,
           ),
         ),
-        SizedBox(height: 16.h),
-        FadeInRight(
-          delay: const Duration(milliseconds: 300),
-          child: _buildGlassTextField(
-            controller: _passwordController,
-            label: 'كلمة المرور',
-            hint: '********',
-            icon: Icons.lock_outline_rounded,
-            isPassword: true,
+        if (!isGoogleUser) ...[
+          SizedBox(height: 16.h),
+          FadeInRight(
+            delay: const Duration(milliseconds: 300),
+            child: _buildGlassTextField(
+              controller: _passwordController,
+              label: 'كلمة المرور',
+              hint: '********',
+              icon: Icons.lock_outline_rounded,
+              isPassword: true,
+            ),
           ),
-        ),
+        ],
         SizedBox(height: 24.h),
         FadeInUp(
           delay: const Duration(milliseconds: 350),
@@ -396,6 +501,61 @@ class _SignUpScreenState extends State<SignUpScreen> {
         ),
         SizedBox(height: 20.h),
       ],
+    );
+  }
+
+  Widget _buildGoogleSignUpButton() {
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, state) {
+        final isLoading = state is AuthLoading;
+        return GestureDetector(
+          onTap: isLoading
+              ? null
+              : () {
+                  context.read<AuthBloc>().add(GoogleSignInSubmitted());
+                },
+          child: Container(
+            width: double.infinity,
+            height: 52.h,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16.r),
+              border: Border.all(color: Colors.grey.shade300, width: 1.2),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  'assets/images/google.png',
+                  width: 22.w,
+                  height: 22.h,
+                  errorBuilder: (context, error, stackTrace) => Icon(
+                    Icons.g_mobiledata_rounded,
+                    color: Colors.red.shade600,
+                    size: 28.r,
+                  ),
+                ),
+                SizedBox(width: 10.w),
+                Text(
+                  isLoading ? 'جاري التسجيل بـ Google...' : 'التسجيل السريع باستخدام Google',
+                  style: GoogleFonts.cairo(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

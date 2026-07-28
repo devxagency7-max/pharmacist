@@ -9,6 +9,7 @@ class ChatDetailLoading extends ChatDetailState {}
 class ChatDetailLoaded extends ChatDetailState {
   final List<MessageEntity> messages;
   final bool sending;
+  final bool uploadingImage;
   final bool isClosed;
   final String? nextCursor;
   final bool hasMore;
@@ -21,6 +22,7 @@ class ChatDetailLoaded extends ChatDetailState {
   ChatDetailLoaded(
     this.messages, {
     this.sending = false,
+    this.uploadingImage = false,
     this.isClosed = false,
     this.nextCursor,
     this.hasMore = false,
@@ -31,6 +33,7 @@ class ChatDetailLoaded extends ChatDetailState {
   ChatDetailLoaded copyWith({
     List<MessageEntity>? messages,
     bool? sending,
+    bool? uploadingImage,
     bool? isClosed,
     String? nextCursor,
     bool? hasMore,
@@ -40,6 +43,7 @@ class ChatDetailLoaded extends ChatDetailState {
     return ChatDetailLoaded(
       messages ?? this.messages,
       sending: sending ?? this.sending,
+      uploadingImage: uploadingImage ?? this.uploadingImage,
       isClosed: isClosed ?? this.isClosed,
       nextCursor: nextCursor ?? this.nextCursor,
       hasMore: hasMore ?? this.hasMore,
