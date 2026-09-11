@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:pharmacist/core/constants/api_constants.dart';
 import 'package:pharmacist/core/constants/app_colors.dart';
 import 'package:pharmacist/core/di/injection_container.dart';
 import '../../domain/entities/chat_entity.dart';
@@ -112,7 +113,9 @@ class _ChatListViewState extends State<_ChatListView> {
                         );
                       }
                       if (state is ConversationListLoaded) {
-                        var items = state.items;
+                        var items = state.items
+                            .where((c) => c.otherParticipantId != ApiConstants.aiParticipantId)
+                            .toList();
                         if (_searchQuery.isNotEmpty) {
                           items = items.where((c) {
                             return c.otherParticipantName.toLowerCase().contains(_searchQuery);

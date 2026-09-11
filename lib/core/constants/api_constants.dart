@@ -1,6 +1,13 @@
 class ApiConstants {
   static const String baseUrl = 'http://204.168.149.185/api/v1';
 
+  // Well-known, fixed system user id for the AI assistant — every
+  // pharmacist/patient has exactly one conversation with this participant,
+  // auto-created on first use. Used to identify/filter the AI conversation
+  // among a participant's regular conversations.
+  static const String aiParticipantId =
+      '00000000-0000-0000-0000-000000000001';
+
   // The one route in the entire API that omits the `/v1` segment — must be
   // requested as an absolute path, not relative to [baseUrl].
   static const String filesUpload = 'http://204.168.149.185/api/files/upload';
@@ -38,11 +45,6 @@ class ApiConstants {
   static String patientDetail(String patientId) => '/pharmacists/patients/$patientId';
   static String terminatePatient(String patientId) =>
       '/pharmacists/patients/$patientId/terminate';
-  // Read-only view of a patient's AI-assistant conversation (Module D
-  // extension) — separate from the pharmacist↔patient conversation and its
-  // messages endpoint under Module I.
-  static String patientAiConversation(String patientId) =>
-      '/pharmacists/patients/$patientId/ai-conversation';
 
   // Module D2: Medication Plans (Pharmacist-authored)
   static const String createMedicationPlan = '/medications';
@@ -82,6 +84,9 @@ class ApiConstants {
   static String chatMessages(String conversationId) => '/chat/$conversationId/messages';
   static String chatConversationRead(String conversationId) =>
       '/chat/conversations/$conversationId/read';
+  // General-purpose AI assistant chat (Pharmacist-only) — the pharmacist's
+  // own conversation with the AI assistant, with optional patient context.
+  static const String chatAiMessage = '/chat/ai-message';
 
   // Module J: Pharmacist Reminder Management
   static String createReminder(String patientId) => '/pharmacists/patients/$patientId/reminders';

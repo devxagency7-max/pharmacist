@@ -87,27 +87,19 @@ class ChatRepositoryImpl implements ChatRepository {
   }
 
   @override
-  Future<CursorPagedResult<MessageEntity>> getPatientAiConversation(
-    String patientId, {
-    String? cursor,
-    int pageSize = 50,
+  Future<MessageEntity> sendAiMessage(
+    String message, {
+    String? conversationId,
+    String? patientId,
   }) async {
-    final response = await _apiClient.dio.get(
-      ApiConstants.patientAiConversation(patientId),
-      queryParameters: {
-        if (cursor != null) 'cursor': cursor,
-        'pageSize': pageSize,
+    final response = await _apiClient.dio.post(
+      ApiConstants.chatAiMessage,
+      data: {
+        'message': message,
+        if (conversationId != null) 'conversationId': conversationId,
+        if (patientId != null) 'patientId': patientId,
       },
     );
-    return unwrapApiResponse(response, (json) {
-      final items = (json['items'] as List? ?? [])
-          .map((e) => MessageModel.fromJson(e as Map<String, dynamic>))
-          .toList();
-      return CursorPagedResult<MessageEntity>(
-        items: items,
-        nextCursor: json['nextCursor'],
-        hasMore: json['hasMore'] as bool? ?? false,
-      );
-    });
+    return unwrapApiResponse(response, (json) => MessageModel.fromJson(json));
   }
 }

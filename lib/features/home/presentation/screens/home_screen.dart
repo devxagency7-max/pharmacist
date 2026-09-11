@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:pharmacist/core/constants/api_constants.dart';
 import 'package:pharmacist/core/constants/app_colors.dart';
 import 'package:pharmacist/core/di/injection_container.dart';
 import 'package:pharmacist/core/network/paged_result.dart';
 import 'package:pharmacist/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:pharmacist/features/auth/presentation/bloc/auth_state.dart';
+import 'package:pharmacist/features/chat/presentation/screens/ai_assistant_chat_screen.dart';
 import 'package:pharmacist/features/chat/presentation/screens/chat_list_screen.dart';
 import 'package:pharmacist/features/chat/domain/repositories/chat_repository.dart';
 import 'package:pharmacist/features/chat/domain/entities/chat_entity.dart';
@@ -63,7 +65,9 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       // Fetch live data concurrently
       final authState = context.read<AuthBloc>().state;
-      final pharmacistId = authState is AuthAuthenticated ? authState.user.id : null;
+      final pharmacistId = authState is AuthAuthenticated
+          ? authState.user.id
+          : null;
 
       final futures = await Future.wait([
         getIt<NotificationRepository>().getUnreadCount(),
@@ -71,21 +75,33 @@ class _HomeScreenState extends State<HomeScreen> {
         getIt<NotificationRepository>().getNotifications(page: 1, pageSize: 5),
         getIt<PatientRepository>().getMyPatients(page: 1, pageSize: 15),
         if (pharmacistId != null)
-          getIt<RatingRepository>().getPharmacistRatings(pharmacistId, page: 1, pageSize: 50),
+          getIt<RatingRepository>().getPharmacistRatings(
+            pharmacistId,
+            page: 1,
+            pageSize: 50,
+          ),
       ]);
 
       if (mounted) {
         setState(() {
           _unreadNotificationsCount = futures[0] as int;
-          _activeChatsCount = (futures[1] as PagedResult<ConversationEntity>).items.length;
-          _recentNotifications = (futures[2] as PagedResult<NotificationEntity>).items;
+          // Excludes the AI-assistant conversation (fixed system id) — it
+          // has its own dedicated entry points (home's floating button,
+          // the AI tab inside each patient chat) and isn't a "real" chat.
+          _activeChatsCount = (futures[1] as PagedResult<ConversationEntity>)
+              .items
+              .where((c) => c.otherParticipantId != ApiConstants.aiParticipantId)
+              .length;
+          _recentNotifications =
+              (futures[2] as PagedResult<NotificationEntity>).items;
           _myPatients = (futures[3] as PagedResult<PatientSummaryEntity>).items;
           if (pharmacistId != null) {
             final ratings = (futures[4] as PagedResult<RatingEntity>).items;
             _ratingsCount = ratings.length;
             _averageRating = ratings.isEmpty
                 ? 0
-                : ratings.map((r) => r.score).reduce((a, b) => a + b) / ratings.length;
+                : ratings.map((r) => r.score).reduce((a, b) => a + b) /
+                      ratings.length;
           }
           _isLoading = false;
         });
@@ -117,9 +133,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     // Dynamic name from AuthBloc
     final authState = context.watch<AuthBloc>().state;
-    
+
     if (authState is AuthAuthenticated) {
-      debugPrint('👤 HOME USER DATA: name="${authState.user.name}", email="${authState.user.email}", roles=${authState.user.roles}');
+      debugPrint(
+        '👤 HOME USER DATA: name="${authState.user.name}", email="${authState.user.email}", roles=${authState.user.roles}',
+      );
     } else {
       debugPrint('👤 HOME AUTH STATE: $authState');
     }
@@ -130,9 +148,12 @@ class _HomeScreenState extends State<HomeScreen> {
       if (name.isNotEmpty) {
         pharmacistName = name.startsWith('د.') ? name : 'د. $name';
       } else {
-        final firebaseName = getIt<FirebaseAuth>().currentUser?.displayName?.trim();
+        final firebaseName = getIt<FirebaseAuth>().currentUser?.displayName
+            ?.trim();
         if (firebaseName != null && firebaseName.isNotEmpty) {
-          pharmacistName = firebaseName.startsWith('د.') ? firebaseName : 'د. $firebaseName';
+          pharmacistName = firebaseName.startsWith('د.')
+              ? firebaseName
+              : 'د. $firebaseName';
         }
       }
     }
@@ -141,6 +162,7 @@ class _HomeScreenState extends State<HomeScreen> {
       drawerScrimColor: Colors.transparent,
       endDrawer: const AppDrawer(),
       backgroundColor: AppColors.background,
+      floatingActionButton: _buildAiAssistantFab(context),
       body: Stack(
         children: [
           _buildAmbientMeshBackground(),
@@ -156,60 +178,99 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     )
                   : _errorMessage != null
-                      ? _buildErrorWidget()
-                      : SingleChildScrollView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SizedBox(height: 16.h),
-                              Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 16.w),
-                                child: Builder(
-                                  builder: (headerContext) => _buildHeader(headerContext),
-                                ),
-                              ),
-                              SizedBox(height: 20.h),
-                              Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 16.w),
-                                child: _buildAppleGlassDoctorGreetingCard(pharmacistName),
-                              ),
-                              SizedBox(height: 24.h),
-                              Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 16.w),
-                                child: Text(
-                                  'الوصول السريع',
-                                  style: GoogleFonts.cairo(
-                                    fontSize: 16.sp,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.textPrimary,
-                                    height: 1.2,
-                                  ),
-                                ),
-                              ),
-                              SizedBox(height: 12.h),
-                              _buildActionCardsHorizontalList(context),
-                              SizedBox(height: 24.h),
-                              
-                              // My Active Patients section
-                              _buildMyPatientsSection(),
-
-                              Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 16.w),
-                                child: _buildSectionTitle('أحدث التنبيهات والنشاطات'),
-                              ),
-                              SizedBox(height: 12.h),
-                              Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 16.w),
-                                child: _buildActivityList(),
-                              ),
-                              SizedBox(height: 32.h),
-                            ],
+                  ? _buildErrorWidget()
+                  : SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(height: 16.h),
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 16.w),
+                            child: Builder(
+                              builder: (headerContext) =>
+                                  _buildHeader(headerContext),
+                            ),
                           ),
-                        ),
+                          SizedBox(height: 20.h),
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 16.w),
+                            child: _buildAppleGlassDoctorGreetingCard(
+                              pharmacistName,
+                            ),
+                          ),
+                          SizedBox(height: 24.h),
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 16.w),
+                            child: Text(
+                              'الوصول السريع',
+                              style: GoogleFonts.cairo(
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textPrimary,
+                                height: 1.2,
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 12.h),
+                          _buildActionCardsHorizontalList(context),
+                          SizedBox(height: 24.h),
+
+                          // My Active Patients section
+                          _buildMyPatientsSection(),
+
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 16.w),
+                            child: _buildSectionTitle(
+                              'أحدث التنبيهات والنشاطات',
+                            ),
+                          ),
+                          SizedBox(height: 12.h),
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 16.w),
+                            child: _buildActivityList(),
+                          ),
+                          SizedBox(height: 32.h),
+                        ],
+                      ),
+                    ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAiAssistantFab(BuildContext context) {
+    return FloatingActionButton(
+      heroTag: 'ai_assistant_fab',
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const AiAssistantChatScreen()),
+        );
+      },
+      child: Container(
+        width: 56.r,
+        height: 56.r,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: const LinearGradient(
+            colors: [AppColors.primary, AppColors.primaryGreen],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.35),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Icon(Icons.smart_toy_rounded, color: Colors.white, size: 26.r),
       ),
     );
   }
@@ -227,7 +288,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: AppColors.warning.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.wifi_off_rounded, color: AppColors.warning, size: 44),
+              child: const Icon(
+                Icons.wifi_off_rounded,
+                color: AppColors.warning,
+                size: 44,
+              ),
             ),
             SizedBox(height: 16.h),
             Text(
@@ -242,7 +307,11 @@ class _HomeScreenState extends State<HomeScreen> {
             SizedBox(height: 20.h),
             ElevatedButton.icon(
               onPressed: _loadData,
-              icon: const Icon(Icons.refresh_rounded, color: Colors.white, size: 18),
+              icon: const Icon(
+                Icons.refresh_rounded,
+                color: Colors.white,
+                size: 18,
+              ),
               label: Text(
                 'إعادة المحاولة',
                 style: GoogleFonts.cairo(
@@ -255,9 +324,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 backgroundColor: AppColors.primaryGreen,
                 elevation: 0,
                 padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16.r),
+                ),
               ),
-            )
+            ),
           ],
         ),
       ),
@@ -419,7 +490,7 @@ class _HomeScreenState extends State<HomeScreen> {
         'unit': 'نشطة',
         'icon': Icons.chat_bubble_outline_rounded,
         'color': const Color(0xFFF39C12),
-        'screen': const ChatListScreen()
+        'screen': const ChatListScreen(),
       },
       {
         'title': 'الإشعارات ',
@@ -427,7 +498,7 @@ class _HomeScreenState extends State<HomeScreen> {
         'unit': 'تنبيه',
         'icon': Icons.notifications_none_rounded,
         'color': const Color(0xFFFF4757),
-        'screen': const NotificationsScreen()
+        'screen': const NotificationsScreen(),
       },
       {
         'title': "التقييمات",
@@ -435,7 +506,7 @@ class _HomeScreenState extends State<HomeScreen> {
         'unit': 'تقييم',
         'icon': Icons.star_rounded,
         'color': const Color(0xFF9B59B6),
-        'screen': const ReportsScreen()
+        'screen': const ReportsScreen(),
       },
     ];
 
@@ -479,7 +550,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }) {
     return GestureDetector(
       onTap: () {
-        Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => screen),
+        );
       },
       child: _buildSoftGlassCard(
         width: 120.w,
@@ -568,7 +642,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const PatientsScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => const PatientsScreen(),
+                    ),
                   );
                 },
                 child: Text(
@@ -602,7 +678,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => PatientDetailScreen(patientId: p.patientId),
+                        builder: (context) =>
+                            PatientDetailScreen(patientId: p.patientId),
                       ),
                     );
                   },
@@ -611,10 +688,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       Container(
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.primaryGreen, width: 1.8),
+                          border: Border.all(
+                            color: AppColors.primaryGreen,
+                            width: 1.8,
+                          ),
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.primaryGreen.withValues(alpha: 0.14),
+                              color: AppColors.primaryGreen.withValues(
+                                alpha: 0.14,
+                              ),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -866,10 +948,7 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: borderRadius,
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: Padding(
-            padding: padding,
-            child: child,
-          ),
+          child: Padding(padding: padding, child: child),
         ),
       ),
     );

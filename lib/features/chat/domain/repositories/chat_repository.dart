@@ -31,13 +31,16 @@ abstract class ChatRepository {
   /// PUT /chat/conversations/{id}/read
   Future<void> markConversationRead(String conversationId);
 
-  /// GET /pharmacists/patients/{patientId}/ai-conversation?cursor=&pageSize=50
-  /// Read-only: the patient's AI-assistant conversation, cursor-paginated,
-  /// requires an Active assignment with this patient. 404 if the patient
-  /// has never used the AI assistant.
-  Future<CursorPagedResult<MessageEntity>> getPatientAiConversation(
-    String patientId, {
-    String? cursor,
-    int pageSize = 50,
+  /// POST /chat/ai-message — general-purpose AI assistant chat
+  /// (Pharmacist-only; any other role gets 403). [conversationId] threads
+  /// consecutive sends into the same AI conversation so the backend can
+  /// include the last 20 messages as context — omit it for the first
+  /// message. [patientId] is optional: when set, the reply is grounded in
+  /// that patient's data, but requires an Active care relationship with
+  /// them (403 if not, 404 if the patient doesn't exist).
+  Future<MessageEntity> sendAiMessage(
+    String message, {
+    String? conversationId,
+    String? patientId,
   });
 }

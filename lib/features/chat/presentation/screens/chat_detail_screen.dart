@@ -10,14 +10,19 @@ import 'package:pharmacist/core/di/injection_container.dart';
 import 'package:pharmacist/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:pharmacist/features/auth/presentation/bloc/auth_state.dart';
 import '../../domain/entities/chat_entity.dart';
-import '../bloc/ai_conversation_bloc.dart';
-import '../bloc/ai_conversation_event.dart';
-import '../bloc/ai_conversation_state.dart';
+import '../bloc/ai_assistant_chat_bloc.dart';
+import '../bloc/ai_assistant_chat_event.dart';
 import '../bloc/chat_detail_bloc.dart';
 import '../bloc/chat_detail_event.dart';
 import '../bloc/chat_detail_state.dart';
+import 'ai_assistant_chat_screen.dart';
 
-/// Gen Z Rebranded Chat Detail Screen
+/// Gen Z Rebranded Chat Detail Screen — the pharmacist↔patient conversation,
+/// plus a second tab for the pharmacist's own AI-assistant conversation
+/// (the same single, ungrounded conversation reachable from the home
+/// screen's floating button — not scoped to this patient). The patient's
+/// own AI-assistant history is a separate thing entirely and is not
+/// exposed here; the pharmacist has no view into or control over it.
 class ChatDetailScreen extends StatelessWidget {
   final String conversationId;
   final String otherParticipantName;
@@ -44,8 +49,8 @@ class ChatDetailScreen extends StatelessWidget {
         ),
         BlocProvider(
           create: (context) =>
-              getIt<AiConversationBloc>(param1: patientId)
-                ..add(AiConversationRequested()),
+              getIt<AiAssistantChatBloc>(param1: null)
+                ..add(AiAssistantHistoryRequested()),
         ),
       ],
       child: _ChatDetailView(otherParticipantName: otherParticipantName),
@@ -66,7 +71,6 @@ class _ChatDetailViewState extends State<_ChatDetailView>
     with SingleTickerProviderStateMixin {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
-  final _aiScrollController = ScrollController();
   final _imagePicker = ImagePicker();
   late final TabController _tabController;
 
@@ -75,7 +79,6 @@ class _ChatDetailViewState extends State<_ChatDetailView>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _scrollController.addListener(_onScroll);
-    _aiScrollController.addListener(_onAiScroll);
   }
 
   void _onScroll() {
@@ -85,23 +88,12 @@ class _ChatDetailViewState extends State<_ChatDetailView>
     }
   }
 
-  void _onAiScroll() {
-    if (_aiScrollController.position.pixels >=
-        _aiScrollController.position.maxScrollExtent - 100) {
-      context.read<AiConversationBloc>().add(
-        AiConversationOlderMessagesRequested(),
-      );
-    }
-  }
-
   @override
   void dispose() {
-    _tabController.dispose();
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
-    _aiScrollController.removeListener(_onAiScroll);
-    _aiScrollController.dispose();
     _messageController.dispose();
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -120,17 +112,55 @@ class _ChatDetailViewState extends State<_ChatDetailView>
                 SizedBox(height: 12.h),
                 _buildHeader(context),
                 SizedBox(height: 14.h),
-                _buildGenZSegmentedTabBar(),
-                SizedBox(height: 12.h),
+                _buildTabBar(),
+                SizedBox(height: 10.h),
                 Expanded(
                   child: TabBarView(
                     controller: _tabController,
-                    children: [_buildPharmacistTab(currentUserId), _buildAiTab()],
+                    children: [
+                      _buildPharmacistTab(currentUserId),
+                      const AiAssistantTabView(),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabBar() {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 16.w),
+      padding: EdgeInsets.all(4.r),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(14.r),
+        border: Border.all(color: Colors.white),
+      ),
+      child: TabBar(
+        controller: _tabController,
+        indicator: BoxDecoration(
+          gradient: AppColors.primaryGradient,
+          borderRadius: BorderRadius.circular(10.r),
+        ),
+        indicatorSize: TabBarIndicatorSize.tab,
+        dividerColor: Colors.transparent,
+        labelColor: Colors.white,
+        unselectedLabelColor: AppColors.textPrimary,
+        labelStyle: GoogleFonts.cairo(
+          fontSize: 12.5.sp,
+          fontWeight: FontWeight.w800,
+        ),
+        unselectedLabelStyle: GoogleFonts.cairo(
+          fontSize: 12.5.sp,
+          fontWeight: FontWeight.w700,
+        ),
+        tabs: const [
+          Tab(text: 'الصيدلي والمريض'),
+          Tab(text: 'المساعد الذكي'),
         ],
       ),
     );
@@ -257,52 +287,6 @@ class _ChatDetailViewState extends State<_ChatDetailView>
     );
   }
 
-  Widget _buildGenZSegmentedTabBar() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
-      child: Container(
-        height: 46.h,
-        padding: EdgeInsets.all(4.r),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.7),
-          borderRadius: BorderRadius.circular(14.r),
-          border: Border.all(color: Colors.white, width: 1.2),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF1A1D26).withValues(alpha: 0.03),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: TabBar(
-          controller: _tabController,
-          indicator: BoxDecoration(
-            gradient: AppColors.primaryGradient,
-            borderRadius: BorderRadius.circular(12.r),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.25),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          labelColor: Colors.white,
-          unselectedLabelColor: AppColors.textSecondary,
-          labelStyle: GoogleFonts.cairo(fontSize: 12.5.sp, fontWeight: FontWeight.w800),
-          unselectedLabelStyle: GoogleFonts.cairo(fontSize: 12.5.sp, fontWeight: FontWeight.w700),
-          dividerColor: Colors.transparent,
-          indicatorSize: TabBarIndicatorSize.tab,
-          tabs: const [
-            Tab(text: 'التعامل مع المريض 💬'),
-            Tab(text: 'سجل المساعد AI 🤖'),
-          ],
-        ),
-      ),
-    );
-  }
-
   String? _currentUserId(BuildContext context) {
     final authState = context.read<AuthBloc>().state;
     return authState is AuthAuthenticated ? authState.user.id : null;
@@ -316,10 +300,15 @@ class _ChatDetailViewState extends State<_ChatDetailView>
         final message = (state as ChatDetailLoaded).sendError!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(message, style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+            content: Text(
+              message,
+              style: GoogleFonts.cairo(fontWeight: FontWeight.bold),
+            ),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14.r)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14.r),
+            ),
           ),
         );
       },
@@ -331,87 +320,116 @@ class _ChatDetailViewState extends State<_ChatDetailView>
               onRefresh: () => _refreshMessages(context),
               child: BlocBuilder<ChatDetailBloc, ChatDetailState>(
                 builder: (context, state) {
-                if (state is ChatDetailLoading || state is ChatDetailInitial) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: AppColors.primaryGreen, strokeWidth: 3),
-                  );
-                }
-                if (state is ChatDetailError) {
-                  return Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(32.w),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            padding: EdgeInsets.all(20.r),
-                            decoration: BoxDecoration(
-                              color: AppColors.error.withValues(alpha: 0.1),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(Icons.error_outline_rounded, size: 44.r, color: AppColors.error),
-                          ),
-                          SizedBox(height: 16.h),
-                          Text(
-                            state.message,
-                            style: GoogleFonts.cairo(fontWeight: FontWeight.w700, fontSize: 13.5.sp, color: AppColors.textPrimary),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-                if (state is ChatDetailLoaded) {
-                  final messages = state.messages;
-                  if (messages.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            padding: EdgeInsets.all(20.r),
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryGreen.withValues(alpha: 0.1),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(Icons.chat_bubble_outline_rounded, size: 48.r, color: AppColors.primaryGreen),
-                          ),
-                          SizedBox(height: 14.h),
-                          Text(
-                            'ابدأ المحادثة والاستشارة الآن 💬',
-                            style: GoogleFonts.cairo(fontWeight: FontWeight.w800, fontSize: 14.sp, color: AppColors.textPrimary),
-                          ),
-                        ],
+                  if (state is ChatDetailLoading ||
+                      state is ChatDetailInitial) {
+                    return const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primaryGreen,
+                        strokeWidth: 3,
                       ),
                     );
                   }
-                  final itemCount = messages.length + (state.loadingMore ? 1 : 0);
-                  return ListView.builder(
-                    controller: _scrollController,
-                    reverse: true,
-                    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-                    itemCount: itemCount,
-                    itemBuilder: (context, index) {
-                      if (state.loadingMore && index == itemCount - 1) {
-                        return Padding(
-                          padding: EdgeInsets.symmetric(vertical: 12.h),
-                          child: const Center(
-                            child: CircularProgressIndicator(color: AppColors.primaryGreen, strokeWidth: 2),
-                          ),
-                        );
-                      }
-                      final message = messages[messages.length - 1 - index];
-                      final isMe = message.senderId == currentUserId;
-                      return FadeInUp(
-                        duration: const Duration(milliseconds: 300),
-                        child: _MessageBubble(message: message, isMe: isMe),
+                  if (state is ChatDetailError) {
+                    return Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(32.w),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: EdgeInsets.all(20.r),
+                              decoration: BoxDecoration(
+                                color: AppColors.error.withValues(alpha: 0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.error_outline_rounded,
+                                size: 44.r,
+                                color: AppColors.error,
+                              ),
+                            ),
+                            SizedBox(height: 16.h),
+                            Text(
+                              state.message,
+                              style: GoogleFonts.cairo(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13.5.sp,
+                                color: AppColors.textPrimary,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+                  if (state is ChatDetailLoaded) {
+                    final messages = state.messages;
+                    if (messages.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: EdgeInsets.all(20.r),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryGreen.withValues(
+                                  alpha: 0.1,
+                                ),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.chat_bubble_outline_rounded,
+                                size: 48.r,
+                                color: AppColors.primaryGreen,
+                              ),
+                            ),
+                            SizedBox(height: 14.h),
+                            Text(
+                              'ابدأ المحادثة والاستشارة الآن 💬',
+                              style: GoogleFonts.cairo(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 14.sp,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
                       );
-                    },
-                  );
-                }
-                return const SizedBox.shrink();
-              },
+                    }
+                    final itemCount =
+                        messages.length + (state.loadingMore ? 1 : 0);
+                    return ListView.builder(
+                      controller: _scrollController,
+                      reverse: true,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16.w,
+                        vertical: 12.h,
+                      ),
+                      itemCount: itemCount,
+                      itemBuilder: (context, index) {
+                        if (state.loadingMore && index == itemCount - 1) {
+                          return Padding(
+                            padding: EdgeInsets.symmetric(vertical: 12.h),
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                color: AppColors.primaryGreen,
+                                strokeWidth: 2,
+                              ),
+                            ),
+                          );
+                        }
+                        final message = messages[messages.length - 1 - index];
+                        final isMe = message.senderId == currentUserId;
+                        return FadeInUp(
+                          duration: const Duration(milliseconds: 300),
+                          child: _MessageBubble(message: message, isMe: isMe),
+                        );
+                      },
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
               ),
             ),
           ),
@@ -440,86 +458,6 @@ class _ChatDetailViewState extends State<_ChatDetailView>
     );
   }
 
-  Widget _buildAiTab() {
-    return BlocBuilder<AiConversationBloc, AiConversationState>(
-      builder: (context, state) {
-        if (state is AiConversationLoading || state is AiConversationInitial) {
-          return const Center(
-            child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 3),
-          );
-        }
-        if (state is AiConversationNotStarted) {
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: EdgeInsets.all(20.r),
-                  decoration: BoxDecoration(
-                    color: Colors.purple.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.smart_toy_outlined, size: 48.r, color: Colors.purple),
-                ),
-                SizedBox(height: 14.h),
-                Text(
-                  'المريض لم يستخدم المساعد الذكي بعد 🤖',
-                  style: GoogleFonts.cairo(fontWeight: FontWeight.w800, fontSize: 14.sp, color: AppColors.textPrimary),
-                ),
-              ],
-            ),
-          );
-        }
-        if (state is AiConversationError) {
-          return Center(
-            child: Padding(
-              padding: EdgeInsets.all(32.w),
-              child: Text(
-                state.message,
-                style: GoogleFonts.cairo(color: AppColors.textSecondary, fontWeight: FontWeight.w700),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          );
-        }
-        if (state is AiConversationLoaded) {
-          final messages = state.messages;
-          if (messages.isEmpty) {
-            return Center(
-              child: Text(
-                'لا توجد رسائل بعد',
-                style: GoogleFonts.cairo(color: AppColors.textSecondary, fontWeight: FontWeight.w700),
-              ),
-            );
-          }
-          final itemCount = messages.length + (state.loadingMore ? 1 : 0);
-          return ListView.builder(
-            controller: _aiScrollController,
-            reverse: true,
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-            itemCount: itemCount,
-            itemBuilder: (context, index) {
-              if (state.loadingMore && index == itemCount - 1) {
-                return Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12.h),
-                  child: const Center(
-                    child: CircularProgressIndicator(color: Colors.purple, strokeWidth: 2),
-                  ),
-                );
-              }
-              final message = messages[messages.length - 1 - index];
-              return FadeInUp(
-                duration: const Duration(milliseconds: 300),
-                child: _MessageBubble(message: message, isMe: false),
-              );
-            },
-          );
-        }
-        return const SizedBox.shrink();
-      },
-    );
-  }
-
   Widget _buildComposer(BuildContext context) {
     return SafeArea(
       top: false,
@@ -528,13 +466,16 @@ class _ChatDetailViewState extends State<_ChatDetailView>
         child: BlocBuilder<ChatDetailBloc, ChatDetailState>(
           builder: (context, state) {
             final sending = state is ChatDetailLoaded && state.sending;
-            final uploadingImage = state is ChatDetailLoaded && state.uploadingImage;
+            final uploadingImage =
+                state is ChatDetailLoaded && state.uploadingImage;
             final isClosed = state is ChatDetailLoaded && state.isClosed;
             final busy = sending || uploadingImage;
             return Row(
               children: [
                 GestureDetector(
-                  onTap: (busy || isClosed) ? null : () => _pickAndSendImage(context),
+                  onTap: (busy || isClosed)
+                      ? null
+                      : () => _pickAndSendImage(context),
                   child: Container(
                     width: 46.r,
                     height: 46.r,
@@ -544,7 +485,9 @@ class _ChatDetailViewState extends State<_ChatDetailView>
                       border: Border.all(color: Colors.white, width: 1.2),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF1A1D26).withValues(alpha: 0.05),
+                          color: const Color(
+                            0xFF1A1D26,
+                          ).withValues(alpha: 0.05),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
@@ -577,17 +520,26 @@ class _ChatDetailViewState extends State<_ChatDetailView>
                       border: Border.all(color: Colors.white, width: 1.2),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF1A1D26).withValues(alpha: 0.05),
+                          color: const Color(
+                            0xFF1A1D26,
+                          ).withValues(alpha: 0.05),
                           blurRadius: 16,
                           offset: const Offset(0, 4),
                         ),
                       ],
                     ),
-                    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 2.h),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 16.w,
+                      vertical: 2.h,
+                    ),
                     child: TextField(
                       controller: _messageController,
                       enabled: !isClosed,
-                      style: GoogleFonts.cairo(fontSize: 13.5.sp, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                      style: GoogleFonts.cairo(
+                        fontSize: 13.5.sp,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
                       decoration: InputDecoration(
                         hintText: isClosed
                             ? 'انتهت هذه المحادثة 🔒'
@@ -629,7 +581,11 @@ class _ChatDetailViewState extends State<_ChatDetailView>
                                 strokeWidth: 2,
                               ),
                             )
-                          : Icon(Icons.send_rounded, color: Colors.white, size: 20.r),
+                          : Icon(
+                              Icons.send_rounded,
+                              color: Colors.white,
+                              size: 20.r,
+                            ),
                     ),
                   ),
                 ),
@@ -682,7 +638,7 @@ class _MessageBubble extends StatelessWidget {
         constraints: BoxConstraints(maxWidth: 0.75.sw),
         decoration: BoxDecoration(
           color: message.isAI
-              ? Colors.purple.withValues(alpha: 0.12)
+              ? AppColors.primary.withValues(alpha: 0.08)
               : isMe
               ? AppColors.primaryGreen
               : Colors.white.withValues(alpha: 0.92),
@@ -694,7 +650,7 @@ class _MessageBubble extends StatelessWidget {
           ),
           border: Border.all(
             color: message.isAI
-                ? Colors.purple.withValues(alpha: 0.3)
+                ? AppColors.primary.withValues(alpha: 0.25)
                 : isMe
                 ? AppColors.primaryGreen
                 : Colors.white,
@@ -718,14 +674,18 @@ class _MessageBubble extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.smart_toy_rounded, size: 14.r, color: Colors.purple),
+                    Icon(
+                      Icons.smart_toy_rounded,
+                      size: 14.r,
+                      color: AppColors.primary,
+                    ),
                     SizedBox(width: 4.w),
                     Text(
                       'رد تلقائي من مساعد طمني الذكي 🤖',
                       style: GoogleFonts.cairo(
                         fontSize: 10.5.sp,
                         fontWeight: FontWeight.w800,
-                        color: Colors.purple,
+                        color: AppColors.primary,
                       ),
                     ),
                   ],
@@ -766,7 +726,9 @@ class _MessageBubble extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     Icon(
-                      message.isRead ? Icons.done_all_rounded : Icons.done_rounded,
+                      message.isRead
+                          ? Icons.done_all_rounded
+                          : Icons.done_rounded,
                       size: 14.r,
                       color: Colors.white.withValues(alpha: 0.85),
                     ),
@@ -779,4 +741,3 @@ class _MessageBubble extends StatelessWidget {
     );
   }
 }
-

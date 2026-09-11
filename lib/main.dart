@@ -17,7 +17,11 @@ void main() async {
   await Firebase.initializeApp();
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   await setupInjection();
-  await getIt<ChatPushHandler>().init();
+  try {
+    await getIt<ChatPushHandler>().init();
+  } catch (e) {
+    debugPrint('Failed to initialize push notifications: $e');
+  }
 
   runApp(const TamennyPharmacistApp());
 }

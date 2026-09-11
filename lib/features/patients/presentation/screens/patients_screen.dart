@@ -526,21 +526,7 @@ class _PatientCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 2.h),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8.r),
-                        ),
-                        child: Text(
-                          'مواظب ⚡',
-                          style: GoogleFonts.cairo(
-                            fontSize: 9.5.sp,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ),
+                     
                     ],
                   ),
                   SizedBox(height: 2.h),

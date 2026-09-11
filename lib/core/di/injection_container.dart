@@ -9,7 +9,7 @@ import '../../features/auth/presentation/bloc/onboarding_bloc.dart';
 import '../../features/chat/data/repositories/chat_repository_impl.dart';
 import '../../features/chat/data/services/chat_signalr_service.dart';
 import '../../features/chat/domain/repositories/chat_repository.dart';
-import '../../features/chat/presentation/bloc/ai_conversation_bloc.dart';
+import '../../features/chat/presentation/bloc/ai_assistant_chat_bloc.dart';
 import '../../features/chat/presentation/bloc/chat_detail_bloc.dart';
 import '../../features/chat/presentation/bloc/conversation_list_bloc.dart';
 import '../../features/devices/data/datasources/device_remote_datasource.dart';
@@ -146,7 +146,7 @@ Future<void> setupInjection() async {
       initialIsClosed: initialIsClosed ?? false,
     ),
   );
-  getIt.registerFactoryParam<AiConversationBloc, String, void>(
-    (patientId, _) => AiConversationBloc(getIt(), patientId),
+  getIt.registerFactoryParam<AiAssistantChatBloc, String?, void>(
+    (patientId, _) => AiAssistantChatBloc(getIt(), patientId: patientId),
   );
 }
