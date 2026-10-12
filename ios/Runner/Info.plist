@@ -47,5 +47,23 @@
 	<true/>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>نحتاج للوصول لمعرض الصور لإرسال صورة في المحادثة.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>نحتاج للوصول للكاميرا لالتقاط صورة في المحادثة.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<!-- Backend is plain HTTP until the HTTPS domain lands — scoped to
+		     this one host only, not a blanket ATS opt-out. Remove this whole
+		     block once ApiConstants.baseUrl moves to https://. -->
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>187.7.30.23</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSIncludesSubdomains</key>
+				<false/>
+			</dict>
+		</dict>
+	</dict>
 </dict>
 </plist>

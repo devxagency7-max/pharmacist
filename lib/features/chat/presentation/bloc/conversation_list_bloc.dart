@@ -1,6 +1,6 @@
 import 'dart:async';
+import 'package:pharmacist/core/errors/error_message_mapper.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:pharmacist/core/errors/api_exception.dart';
 import '../../data/services/chat_signalr_service.dart';
 import '../../domain/repositories/chat_repository.dart';
 import 'conversation_list_event.dart';
@@ -31,7 +31,7 @@ class ConversationListBloc extends Bloc<ConversationListEvent, ConversationListS
       emit(ConversationListLoaded(result.items));
     } catch (e) {
       if (event is ConversationListRequested) {
-        emit(ConversationListError(e is ApiException ? e.message : e.toString()));
+        emit(ConversationListError(mapErrorToMessage(e)));
       }
     }
   }

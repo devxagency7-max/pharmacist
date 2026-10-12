@@ -11,8 +11,11 @@ class ApiException implements Exception {
   // Always null except for specific documented cases — prefer this over
   // matching on `message` text, which is free-form and can be localized.
   final String? errorCode;
+  // Extra machine-readable context some endpoints attach (e.g. withdraw's
+  // "currentStatus" on APPLICATION_NOT_PENDING). Null unless documented.
+  final Map<String, dynamic>? extra;
 
-  ApiException(this.message, {this.statusCode, this.errors, this.errorCode});
+  ApiException(this.message, {this.statusCode, this.errors, this.errorCode, this.extra});
 
   @override
   String toString() => message;

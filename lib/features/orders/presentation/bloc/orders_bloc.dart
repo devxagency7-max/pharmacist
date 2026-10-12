@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:pharmacist/core/errors/error_message_mapper.dart';
 import '../../domain/repositories/orders_repository.dart';
 import 'orders_event.dart';
 import 'orders_state.dart';
@@ -26,7 +27,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
       );
       emit(OrdersQueueLoaded(orders: result, status: event.status));
     } catch (e) {
-      emit(OrdersError(e.toString()));
+      emit(OrdersError(mapErrorToMessage(e)));
     }
   }
 
@@ -50,7 +51,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
       // Reload queue
       add(OrdersLoadQueueRequested(branchId: event.branchId, status: 'Pending'));
     } catch (e) {
-      emit(OrdersError(e.toString()));
+      emit(OrdersError(mapErrorToMessage(e)));
     }
   }
 
@@ -65,7 +66,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
       // Reload queue
       add(OrdersLoadQueueRequested(branchId: event.branchId, status: 'Accepted'));
     } catch (e) {
-      emit(OrdersError(e.toString()));
+      emit(OrdersError(mapErrorToMessage(e)));
     }
   }
 
@@ -80,7 +81,7 @@ class OrdersBloc extends Bloc<OrdersEvent, OrdersState> {
       // Reload queue
       add(OrdersLoadQueueRequested(branchId: event.branchId, status: 'Pending'));
     } catch (e) {
-      emit(OrdersError(e.toString()));
+      emit(OrdersError(mapErrorToMessage(e)));
     }
   }
 }

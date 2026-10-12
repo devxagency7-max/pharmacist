@@ -6,6 +6,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmacist/core/constants/app_colors.dart';
 import 'package:pharmacist/core/di/injection_container.dart';
+import 'package:pharmacist/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:pharmacist/features/auth/presentation/bloc/auth_state.dart';
 import '../../domain/entities/chat_entity.dart';
 import '../bloc/ai_assistant_chat_bloc.dart';
 import '../bloc/ai_assistant_chat_event.dart';
@@ -23,6 +25,12 @@ class AiAssistantChatScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final authState = context.watch<AuthBloc>().state;
+    final isIntern =
+        authState is AuthAuthenticated &&
+        authState.user.roles.contains('PharmacyIntern') &&
+        !authState.user.roles.contains('Pharmacist');
+
     return BlocProvider(
       create: (context) =>
           getIt<AiAssistantChatBloc>(param1: patientId)
@@ -37,9 +45,43 @@ class AiAssistantChatScreen extends StatelessWidget {
                 children: [
                   SizedBox(height: 12.h),
                   _buildHeader(context),
+                  if (isIntern) ...[
+                    SizedBox(height: 8.h),
+                    _buildInternDisclaimer(),
+                  ],
                   SizedBox(height: 14.h),
                   const Expanded(child: AiAssistantTabView()),
                 ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInternDisclaimer() {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 20.w),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+        decoration: BoxDecoration(
+          color: Colors.orange.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.school_rounded, color: Colors.orange, size: 18.r),
+            SizedBox(width: 8.w),
+            Expanded(
+              child: Text(
+                'استخدم المساعد الذكي كأداة تعلم. اسأل مشرفك قبل تطبيق أي توصية على مريض.',
+                style: GoogleFonts.cairo(
+                  fontSize: 11.5.sp,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
               ),
             ),
           ],

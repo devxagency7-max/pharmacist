@@ -1,5 +1,5 @@
 class ApiConstants {
-  static const String baseUrl = 'http://204.168.149.185/api/v1';
+  static const String baseUrl = 'http://187.7.30.23/api/v1';
 
   // Well-known, fixed system user id for the AI assistant — every
   // pharmacist/patient has exactly one conversation with this participant,
@@ -10,7 +10,7 @@ class ApiConstants {
 
   // The one route in the entire API that omits the `/v1` segment — must be
   // requested as an absolute path, not relative to [baseUrl].
-  static const String filesUpload = 'http://204.168.149.185/api/files/upload';
+  static const String filesUpload = 'http://187.7.30.23/api/files/upload';
 
   // Paths below are relative to [baseUrl] — ApiClient's BaseOptions already
   // carries the base, so callers using ApiClient should pass these as-is.
@@ -20,9 +20,18 @@ class ApiConstants {
 
   // Module A: Onboarding & Application
   static const String pharmacistApply = '/pharmacist/apply';
+  // Cleaner alias for the Intern path specifically — same effect as
+  // pharmacistApply with applicationType: "Intern", but a name that makes
+  // sense and a body that can't carry the wrong applicationType.
+  static const String internApply = '/intern/apply';
   static const String pharmacistApplicationStatus = '/pharmacist/application-status';
   static String pharmacistDocuments(String applicationId) => '/pharmacist/$applicationId/documents';
   static String pharmacistWithdraw(String applicationId) => '/pharmacist/$applicationId';
+
+  // Module L: Academic (Universities & Faculties — public, no auth required)
+  static const String universities = '/universities';
+  static String universityFaculties(String universityId) =>
+      '/universities/$universityId/faculties';
 
   // Module B: Orders Queue & Fulfillment
   static String ordersBranch(String branchId) => '/orders/branch/$branchId';
@@ -52,6 +61,26 @@ class ApiConstants {
   static const String medicationPlans = '/medications';
   static String medicationPlanDetail(String id) => '/medications/$id';
 
+  // Module K: Intern Activities (PharmacyIntern + Pharmacist)
+  static const String internProgress = '/intern/progress';
+  static const String internLogHours = '/intern/activities/log-hours';
+  static const String internMySupervisor = '/intern/my-supervisor';
+  static const String internMyProgram = '/intern/my-program';
+  static const String internMyDrafts = '/intern/my-drafts';
+  static String internMyDraftDetail(String id) => '/intern/my-drafts/$id';
+  static String prescriptionDraftRecommendation(String id) =>
+      '/prescriptions/$id/draft-recommendation';
+  static const String medicationDraft = '/medications/draft';
+
+  // Module K (cont'd): Intern — My Patients
+  static const String internMyPatients = '/intern/my-patients';
+  static String internMyPatientDetail(String patientUserId) =>
+      '/intern/my-patients/$patientUserId';
+  static String internMyPatientPrescriptions(String patientUserId) =>
+      '/intern/my-patients/$patientUserId/prescriptions';
+  static String internMyPatientMedicationPlans(String patientUserId) =>
+      '/intern/my-patients/$patientUserId/medication-plans';
+
   // Module E: Branches & Pharmacy Profile
   static const String updatePharmacyProfile = '/pharmacies/profile';
   static String pharmacyBranches(String pharmacyId) => '/pharmacies/$pharmacyId/branches';
@@ -79,7 +108,7 @@ class ApiConstants {
   static String pharmacistRatings(String pharmacistId) => '/ratings/pharmacist/$pharmacistId';
 
   // Module I: Chat
-  static const String chatHubUrl = 'http://204.168.149.185/hubs/chat';
+  static const String chatHubUrl = 'http://187.7.30.23/hubs/chat';
   static const String chatConversations = '/chat/conversations';
   static String chatMessages(String conversationId) => '/chat/$conversationId/messages';
   static String chatConversationRead(String conversationId) =>
@@ -94,4 +123,8 @@ class ApiConstants {
   static String deleteReminder(String scheduleId) => '/pharmacists/reminders/$scheduleId';
   static String pauseReminder(String scheduleId) => '/pharmacists/reminders/$scheduleId/pause';
   static String resumeReminder(String scheduleId) => '/pharmacists/reminders/$scheduleId/resume';
+
+  // Module M: Push Notification Devices
+  static const String userDevices = '/users/me/devices';
+  static String userDevice(String deviceId) => '/users/me/devices/$deviceId';
 }

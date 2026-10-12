@@ -1,5 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:pharmacist/core/errors/api_exception.dart';
+import 'package:pharmacist/core/errors/error_message_mapper.dart';
 import '../../domain/repositories/patient_repository.dart';
 import 'patient_event.dart';
 import 'patient_state.dart';
@@ -24,7 +24,7 @@ class PatientBloc extends Bloc<PatientEvent, PatientState> {
       final result = await _repository.getMyPatients();
       emit(MyPatientsLoaded(result.items));
     } catch (e) {
-      emit(MyPatientsError(e is ApiException ? e.message : e.toString()));
+      emit(MyPatientsError(mapErrorToMessage(e)));
     }
   }
 
@@ -37,7 +37,7 @@ class PatientBloc extends Bloc<PatientEvent, PatientState> {
       final result = await _repository.getPendingRequests();
       emit(PendingRequestsLoaded(result.items));
     } catch (e) {
-      emit(PendingRequestsError(e is ApiException ? e.message : e.toString()));
+      emit(PendingRequestsError(mapErrorToMessage(e)));
     }
   }
 
@@ -56,7 +56,7 @@ class PatientBloc extends Bloc<PatientEvent, PatientState> {
       ));
       add(PendingRequestsRequested());
     } catch (e) {
-      emit(PatientRequestActionError(e is ApiException ? e.message : e.toString()));
+      emit(PatientRequestActionError(mapErrorToMessage(e)));
     }
   }
 
@@ -69,7 +69,7 @@ class PatientBloc extends Bloc<PatientEvent, PatientState> {
       final patient = await _repository.getPatientDetail(event.patientId);
       emit(PatientDetailLoaded(patient));
     } catch (e) {
-      emit(PatientDetailError(e is ApiException ? e.message : e.toString()));
+      emit(PatientDetailError(mapErrorToMessage(e)));
     }
   }
 
@@ -81,7 +81,7 @@ class PatientBloc extends Bloc<PatientEvent, PatientState> {
       await _repository.terminate(event.patientId);
       emit(PatientTerminateSuccess());
     } catch (e) {
-      emit(PatientTerminateError(e is ApiException ? e.message : e.toString()));
+      emit(PatientTerminateError(mapErrorToMessage(e)));
     }
   }
 }

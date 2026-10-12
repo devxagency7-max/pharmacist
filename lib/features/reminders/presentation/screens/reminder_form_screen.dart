@@ -3,7 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmacist/core/constants/app_colors.dart';
 import 'package:pharmacist/core/di/injection_container.dart';
-import 'package:pharmacist/core/errors/api_exception.dart';
+import 'package:pharmacist/core/errors/error_message_mapper.dart';
 import '../../domain/entities/reminder_schedule_entity.dart';
 import '../../domain/repositories/reminder_repository.dart';
 
@@ -134,19 +134,13 @@ class _ReminderFormScreenState extends State<ReminderFormScreen> {
       }
       if (!mounted) return;
       Navigator.of(context).pop(result);
-    } on ApiException catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _submitting = false;
-        _errorMessage = e.statusCode == 404
-            ? 'لا توجد علاقة علاجية نشطة مع هذا المريض، لا يمكنك إدارة تذكيراته.'
-            : e.message;
-      });
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _submitting = false;
-        _errorMessage = 'حدث خطأ غير متوقع، حاول مرة أخرى.';
+        _errorMessage = asApiException(e)?.statusCode == 404
+            ? 'لا توجد علاقة علاجية نشطة مع هذا المريض، لا يمكنك إدارة تذكيراته.'
+            : mapErrorToMessage(e);
       });
     }
   }

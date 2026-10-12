@@ -23,6 +23,13 @@ class UserEntity {
     this.phoneNumber,
   });
 
+  /// True once an admin-approved application has actually been applied to
+  /// the account (the role only changes server-side after approval).
+  bool get hasProfessionalRole =>
+      roles.contains('Pharmacist') ||
+      roles.contains('PharmacyIntern') ||
+      roles.contains('PharmacyOwner');
+
   UserEntity copyWith({
     String? id,
     String? firebaseUid,

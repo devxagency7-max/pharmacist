@@ -14,6 +14,8 @@ import 'package:pharmacist/features/settings/presentation/screens/settings_scree
 import 'package:pharmacist/features/auth/presentation/screens/login_screen.dart';
 import 'package:pharmacist/features/patients/presentation/screens/patients_screen.dart';
 import 'package:pharmacist/features/dashboard/presentation/screens/dashboard_screen.dart';
+import 'package:pharmacist/features/intern/presentation/screens/intern_home_screen.dart';
+import 'package:pharmacist/features/intern/presentation/screens/intern_patients_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pharmacist/core/di/injection_container.dart';
 import 'package:pharmacist/core/widgets/app_avatar.dart';
@@ -27,6 +29,8 @@ class AppDrawer extends StatelessWidget {
     final user = authState is AuthAuthenticated ? authState.user : null;
     final roles = user?.roles ?? [];
     final isOwner = roles.contains('PharmacyOwner');
+    final isPharmacist = roles.contains('Pharmacist');
+    final isIntern = roles.contains('PharmacyIntern');
 
     return Drawer(
       width: 0.8.sw,
@@ -83,8 +87,7 @@ class AppDrawer extends StatelessWidget {
                           );
                         },
                       ),
-                      
-                    ] else ...[
+                    ] else if (isPharmacist) ...[
                       _buildDrawerItem(
                         icon: Icons.people_alt_rounded,
                         title: 'المرضى',
@@ -93,6 +96,35 @@ class AppDrawer extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(builder: (context) => const PatientsScreen()),
+                          );
+                        },
+                      ),
+                    ],
+                    // The Pharmacist roster ("المرضى" above) is
+                    // Pharmacist-only — an Intern's patient relationships
+                    // are auto-derived (chat/draft activity) via
+                    // /intern/my-patients instead, surfaced through its own
+                    // drawer entry rather than the Pharmacist roster.
+                    if (isIntern && !isOwner) ...[
+                      _buildDrawerItem(
+                        icon: Icons.school_rounded,
+                        title: 'تقدمي كمتدرب',
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const InternHomeScreen()),
+                          );
+                        },
+                      ),
+                      _buildDrawerItem(
+                        icon: Icons.people_alt_rounded,
+                        title: 'مرضاي',
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const InternPatientsScreen()),
                           );
                         },
                       ),

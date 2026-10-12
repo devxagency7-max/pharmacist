@@ -1,6 +1,6 @@
 import 'dart:async';
+import 'package:pharmacist/core/errors/error_message_mapper.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:pharmacist/core/errors/api_exception.dart';
 import 'package:pharmacist/core/network/file_upload_service.dart';
 import '../../data/services/chat_signalr_service.dart';
 import '../../domain/repositories/chat_repository.dart';
@@ -72,7 +72,7 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
         ),
       );
     } catch (e) {
-      emit(ChatDetailError(e is ApiException ? e.message : e.toString()));
+      emit(ChatDetailError(mapErrorToMessage(e)));
     }
   }
 
@@ -117,7 +117,7 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
       // signal, unlike matching on the free-form (and Arabic-first) message
       // text.
       final isClosed =
-          e is ApiException && e.errorCode == 'CONVERSATION_CLOSED';
+          asApiException(e)?.errorCode == 'CONVERSATION_CLOSED';
       final latest = state;
       if (latest is! ChatDetailLoaded) return;
       emit(
@@ -128,7 +128,7 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
           // case — that has its own dedicated banner/disabled composer.
           sendError: isClosed
               ? null
-              : (e is ApiException ? e.message : e.toString()),
+              : mapErrorToMessage(e),
         ),
       );
     }
@@ -170,7 +170,7 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
       );
     } catch (e) {
       final isClosed =
-          e is ApiException && e.errorCode == 'CONVERSATION_CLOSED';
+          asApiException(e)?.errorCode == 'CONVERSATION_CLOSED';
       final latest = state;
       if (latest is! ChatDetailLoaded) return;
       emit(
@@ -179,7 +179,7 @@ class ChatDetailBloc extends Bloc<ChatDetailEvent, ChatDetailState> {
           isClosed: isClosed ? true : latest.isClosed,
           sendError: isClosed
               ? null
-              : (e is ApiException ? e.message : e.toString()),
+              : mapErrorToMessage(e),
         ),
       );
     }

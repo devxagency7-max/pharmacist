@@ -42,6 +42,14 @@ import '../../features/medication_plans/domain/repositories/medication_plan_repo
 import '../../features/medication_plans/data/repositories/medication_plan_repository_impl.dart';
 import '../../features/reminders/domain/repositories/reminder_repository.dart';
 import '../../features/reminders/data/repositories/reminder_repository_impl.dart';
+import '../../features/intern/domain/repositories/intern_repository.dart';
+import '../../features/intern/data/repositories/intern_repository_impl.dart';
+import '../../features/intern/presentation/bloc/intern_home_bloc.dart';
+import '../../features/intern/domain/repositories/intern_patient_repository.dart';
+import '../../features/intern/data/repositories/intern_patient_repository_impl.dart';
+import '../../features/intern/presentation/bloc/intern_patients_bloc.dart';
+import '../../features/academic/domain/repositories/academic_repository.dart';
+import '../../features/academic/data/repositories/academic_repository_impl.dart';
 import '../network/api_client.dart';
 import '../network/file_upload_service.dart';
 
@@ -102,6 +110,23 @@ Future<void> setupInjection() async {
     () => RatingRepositoryImpl(getIt()),
   );
   getIt.registerFactory(() => RatingBloc(getIt()));
+
+  // - Intern
+  getIt.registerLazySingleton<InternRepository>(
+    () => InternRepositoryImpl(getIt()),
+  );
+  getIt.registerFactory(() => InternHomeBloc(getIt()));
+
+  // - Intern Patients
+  getIt.registerLazySingleton<InternPatientRepository>(
+    () => InternPatientRepositoryImpl(getIt()),
+  );
+  getIt.registerFactory(() => InternPatientsBloc(getIt()));
+
+  // - Academic (universities/faculties pickers)
+  getIt.registerLazySingleton<AcademicRepository>(
+    () => AcademicRepositoryImpl(getIt(), getIt()),
+  );
 
   // - Orders
   getIt.registerLazySingleton<OrdersRepository>(

@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:pharmacist/core/errors/error_message_mapper.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -574,7 +575,7 @@ class _PatientCard extends StatelessWidget {
                 } catch (e) {
                   navigator.pop();
                   messenger.showSnackBar(
-                    SnackBar(content: Text('تعذر فتح المحادثة: $e')),
+                    SnackBar(content: Text(mapErrorToMessage(e))),
                   );
                 }
               },

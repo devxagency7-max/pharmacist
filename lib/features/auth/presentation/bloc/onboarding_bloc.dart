@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:pharmacist/core/errors/error_message_mapper.dart';
 import 'dart:io';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/network/file_upload_service.dart';
@@ -46,7 +47,7 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
         ));
       }
     } catch (e) {
-      emit(OnboardingError(e.toString()));
+      emit(OnboardingError(mapErrorToMessage(e)));
     }
   }
 
@@ -68,7 +69,7 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
         uploadedUrls: const {},
       ));
     } catch (e) {
-      emit(OnboardingError(e.toString()));
+      emit(OnboardingError(mapErrorToMessage(e)));
     }
   }
 
@@ -109,7 +110,7 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
     } catch (e) {
       updatedProgress[event.documentType] = 0.0;
       emit(currentState.copyWith(uploadProgress: updatedProgress));
-      emit(OnboardingError('فشل رفع المستند: ${e.toString()}'));
+      emit(OnboardingError('فشل رفع المستند: ${mapErrorToMessage(e)}'));
       // Restore previous state without error
       emit(currentState.copyWith(uploadProgress: updatedProgress));
     }

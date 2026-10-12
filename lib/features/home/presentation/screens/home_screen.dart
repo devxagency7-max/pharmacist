@@ -62,57 +62,101 @@ class _HomeScreenState extends State<HomeScreen> {
       _errorMessage = null;
     });
 
+    final authState = context.read<AuthBloc>().state;
+    final pharmacistId = authState is AuthAuthenticated
+        ? authState.user.id
+        : null;
+    // `/pharmacists/my-patients` is Pharmacist-only — Interns don't have
+    // their own patient roster and get a 403 from it.
+    final isPharmacist =
+        authState is AuthAuthenticated &&
+        authState.user.roles.contains('Pharmacist');
+
+    // Each section loads independently — one failing endpoint (e.g. a
+    // role-guarded 403) shouldn't blank out the rest of the screen.
+    final results = await Future.wait([
+      _guarded(() => getIt<NotificationRepository>().getUnreadCount()),
+      _guarded(
+        () => getIt<ChatRepository>().getConversations(page: 1, pageSize: 50),
+      ),
+      _guarded(
+        () => getIt<NotificationRepository>().getNotifications(
+          page: 1,
+          pageSize: 5,
+        ),
+      ),
+      isPharmacist
+          ? _guarded(
+              () => getIt<PatientRepository>().getMyPatients(
+                page: 1,
+                pageSize: 15,
+              ),
+            )
+          : Future.value(null),
+      pharmacistId != null
+          ? _guarded(
+              () => getIt<RatingRepository>().getPharmacistRatings(
+                pharmacistId,
+                page: 1,
+                pageSize: 50,
+              ),
+            )
+          : Future.value(null),
+    ]);
+
+    if (!mounted) return;
+
+    // If every core section failed, this is a real connectivity/server
+    // problem — surface it instead of quietly showing an empty home screen.
+    if (results[0] == null && results[1] == null && results[2] == null) {
+      setState(() {
+        _errorMessage = 'تعذر تحميل البيانات، تحقق من اتصالك وحاول مرة أخرى.';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    setState(() {
+      final unreadCount = results[0] as int?;
+      if (unreadCount != null) _unreadNotificationsCount = unreadCount;
+
+      final conversations = results[1] as PagedResult<ConversationEntity>?;
+      if (conversations != null) {
+        // Excludes the AI-assistant conversation (fixed system id) — it
+        // has its own dedicated entry points (home's floating button,
+        // the AI tab inside each patient chat) and isn't a "real" chat.
+        _activeChatsCount = conversations.items
+            .where((c) => c.otherParticipantId != ApiConstants.aiParticipantId)
+            .length;
+      }
+
+      final notifications = results[2] as PagedResult<NotificationEntity>?;
+      if (notifications != null) _recentNotifications = notifications.items;
+
+      final patients = results[3] as PagedResult<PatientSummaryEntity>?;
+      if (patients != null) _myPatients = patients.items;
+
+      final ratings = results[4] as PagedResult<RatingEntity>?;
+      if (ratings != null) {
+        _ratingsCount = ratings.items.length;
+        _averageRating = ratings.items.isEmpty
+            ? 0
+            : ratings.items.map((r) => r.score).reduce((a, b) => a + b) /
+                  ratings.items.length;
+      }
+
+      _isLoading = false;
+    });
+  }
+
+  /// Runs [action], swallowing any error and returning null instead —
+  /// used so one section's failure can't blank out the whole screen.
+  Future<T?> _guarded<T>(Future<T> Function() action) async {
     try {
-      // Fetch live data concurrently
-      final authState = context.read<AuthBloc>().state;
-      final pharmacistId = authState is AuthAuthenticated
-          ? authState.user.id
-          : null;
-
-      final futures = await Future.wait([
-        getIt<NotificationRepository>().getUnreadCount(),
-        getIt<ChatRepository>().getConversations(page: 1, pageSize: 50),
-        getIt<NotificationRepository>().getNotifications(page: 1, pageSize: 5),
-        getIt<PatientRepository>().getMyPatients(page: 1, pageSize: 15),
-        if (pharmacistId != null)
-          getIt<RatingRepository>().getPharmacistRatings(
-            pharmacistId,
-            page: 1,
-            pageSize: 50,
-          ),
-      ]);
-
-      if (mounted) {
-        setState(() {
-          _unreadNotificationsCount = futures[0] as int;
-          // Excludes the AI-assistant conversation (fixed system id) — it
-          // has its own dedicated entry points (home's floating button,
-          // the AI tab inside each patient chat) and isn't a "real" chat.
-          _activeChatsCount = (futures[1] as PagedResult<ConversationEntity>)
-              .items
-              .where((c) => c.otherParticipantId != ApiConstants.aiParticipantId)
-              .length;
-          _recentNotifications =
-              (futures[2] as PagedResult<NotificationEntity>).items;
-          _myPatients = (futures[3] as PagedResult<PatientSummaryEntity>).items;
-          if (pharmacistId != null) {
-            final ratings = (futures[4] as PagedResult<RatingEntity>).items;
-            _ratingsCount = ratings.length;
-            _averageRating = ratings.isEmpty
-                ? 0
-                : ratings.map((r) => r.score).reduce((a, b) => a + b) /
-                      ratings.length;
-          }
-          _isLoading = false;
-        });
-      }
+      return await action();
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = 'فشل تحميل البيانات الحية: $e';
-          _isLoading = false;
-        });
-      }
+      debugPrint('⚠️ HomeScreen section load failed: $e');
+      return null;
     }
   }
 
@@ -158,11 +202,18 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
 
+    // AI chat is open to both Pharmacist and PharmacyIntern (educational aid
+    // during the supervised internship) — anyone else gets a 403 from it.
+    final canUseAiChat =
+        authState is AuthAuthenticated &&
+        (authState.user.roles.contains('Pharmacist') ||
+            authState.user.roles.contains('PharmacyIntern'));
+
     return Scaffold(
       drawerScrimColor: Colors.transparent,
       endDrawer: const AppDrawer(),
       backgroundColor: AppColors.background,
-      floatingActionButton: _buildAiAssistantFab(context),
+      floatingActionButton: canUseAiChat ? _buildAiAssistantFab(context) : null,
       body: Stack(
         children: [
           _buildAmbientMeshBackground(),

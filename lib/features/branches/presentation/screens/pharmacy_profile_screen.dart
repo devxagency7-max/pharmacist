@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:pharmacist/core/errors/error_message_mapper.dart';
 import 'dart:ui';
 import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
@@ -99,7 +100,7 @@ class _PharmacyProfileScreenState extends State<PharmacyProfileScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('فشل رفع الشعار: ${e.toString()}',
+              content: Text('فشل رفع الشعار: ${mapErrorToMessage(e)}',
                   style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
               backgroundColor: AppColors.error,
             ),

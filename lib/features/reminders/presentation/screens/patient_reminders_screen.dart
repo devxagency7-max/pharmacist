@@ -3,7 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmacist/core/constants/app_colors.dart';
 import 'package:pharmacist/core/di/injection_container.dart';
-import 'package:pharmacist/core/errors/api_exception.dart';
+import 'package:pharmacist/core/errors/error_message_mapper.dart';
 import '../../domain/entities/reminder_schedule_entity.dart';
 import '../../domain/repositories/reminder_repository.dart';
 import 'reminder_form_screen.dart';
@@ -71,14 +71,14 @@ class _PatientRemindersScreenState extends State<PatientRemindersScreen> {
         if (index >= 0) _reminders[index] = updated;
         _busyId = null;
       });
-    } on ApiException catch (e) {
+    } catch (e) {
       if (!mounted) return;
       setState(() => _busyId = null);
-      _showError(e.statusCode == 404 ? 'لا توجد علاقة علاجية نشطة مع هذا المريض.' : e.message);
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _busyId = null);
-      _showError('حدث خطأ غير متوقع، حاول مرة أخرى.');
+      _showError(
+        asApiException(e)?.statusCode == 404
+            ? 'لا توجد علاقة علاجية نشطة مع هذا المريض.'
+            : mapErrorToMessage(e),
+      );
     }
   }
 
@@ -107,14 +107,14 @@ class _PatientRemindersScreenState extends State<PatientRemindersScreen> {
         _reminders.removeWhere((r) => r.id == reminder.id);
         _busyId = null;
       });
-    } on ApiException catch (e) {
+    } catch (e) {
       if (!mounted) return;
       setState(() => _busyId = null);
-      _showError(e.statusCode == 404 ? 'لا توجد علاقة علاجية نشطة مع هذا المريض.' : e.message);
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _busyId = null);
-      _showError('حدث خطأ غير متوقع، حاول مرة أخرى.');
+      _showError(
+        asApiException(e)?.statusCode == 404
+            ? 'لا توجد علاقة علاجية نشطة مع هذا المريض.'
+            : mapErrorToMessage(e),
+      );
     }
   }
 

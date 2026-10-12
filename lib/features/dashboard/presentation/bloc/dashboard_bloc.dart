@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:pharmacist/core/errors/error_message_mapper.dart';
 import '../../domain/repositories/dashboard_repository.dart';
 import 'dashboard_event.dart';
 import 'dashboard_state.dart';
@@ -19,7 +20,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       final data = await _dashboardRepository.getDashboardData(pharmacyId: event.pharmacyId);
       emit(DashboardLoaded(data));
     } catch (e) {
-      emit(DashboardError(e.toString()));
+      emit(DashboardError(mapErrorToMessage(e)));
     }
   }
 }

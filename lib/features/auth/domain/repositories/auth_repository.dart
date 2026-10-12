@@ -39,6 +39,15 @@ abstract class AuthRepository {
     String? universityName,
   });
 
+  /// POST /intern/apply — cleaner, Intern-specific alias of [applyPharmacist]
+  /// with `applicationType: "Intern"` baked in server-side. Requires real
+  /// university/faculty ids from the academic pickers, not free text.
+  Future<PharmacistApplicationEntity> applyAsIntern({
+    required String universityId,
+    required String facultyId,
+    String? membershipNumber,
+  });
+
   Future<PharmacistApplicationEntity?> getApplicationStatus();
 
   Future<void> withdrawApplication(String applicationId);

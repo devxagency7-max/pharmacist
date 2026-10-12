@@ -1,5 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:pharmacist/core/errors/api_exception.dart';
+import 'package:pharmacist/core/errors/error_message_mapper.dart';
 import '../../domain/repositories/rating_repository.dart';
 import 'rating_event.dart';
 import 'rating_state.dart';
@@ -20,7 +20,7 @@ class RatingBloc extends Bloc<RatingEvent, RatingState> {
       final result = await _repository.getPharmacistRatings(event.pharmacistId);
       emit(RatingLoaded(result.items));
     } catch (e) {
-      emit(RatingError(e is ApiException ? e.message : e.toString()));
+      emit(RatingError(mapErrorToMessage(e)));
     }
   }
 }

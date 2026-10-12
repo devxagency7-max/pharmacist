@@ -1,5 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:pharmacist/core/errors/api_exception.dart';
+import 'package:pharmacist/core/errors/error_message_mapper.dart';
 import '../../domain/repositories/notification_repository.dart';
 import 'notification_event.dart';
 import 'notification_state.dart';
@@ -27,7 +27,7 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
       final unreadCount = results[1] as int;
       emit(NotificationsLoaded(page.items, unreadCount: unreadCount));
     } catch (e) {
-      emit(NotificationsError(e is ApiException ? e.message : e.toString()));
+      emit(NotificationsError(mapErrorToMessage(e)));
     }
   }
 

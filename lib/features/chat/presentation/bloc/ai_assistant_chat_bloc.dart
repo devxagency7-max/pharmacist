@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:pharmacist/core/errors/error_message_mapper.dart';
 import 'package:pharmacist/core/constants/api_constants.dart';
 import 'package:pharmacist/core/errors/api_exception.dart';
 import '../../domain/entities/chat_entity.dart';
@@ -58,7 +59,7 @@ class AiAssistantChatBloc extends Bloc<AiAssistantChatEvent, AiAssistantChatStat
       emit(
         state.copyWith(
           isLoadingHistory: false,
-          errorMessage: e is ApiException ? e.message : e.toString(),
+          errorMessage: mapErrorToMessage(e),
         ),
       );
     }
@@ -104,7 +105,7 @@ class AiAssistantChatBloc extends Bloc<AiAssistantChatEvent, AiAssistantChatStat
       emit(
         state.copyWith(
           isSending: false,
-          errorMessage: e is ApiException ? e.message : e.toString(),
+          errorMessage: mapErrorToMessage(e),
         ),
       );
     }

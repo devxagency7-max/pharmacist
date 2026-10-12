@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:pharmacist/core/errors/error_message_mapper.dart';
 import '../../domain/repositories/branches_repository.dart';
 import 'branches_event.dart';
 import 'branches_state.dart';
@@ -23,7 +24,7 @@ class BranchesBloc extends Bloc<BranchesEvent, BranchesState> {
       final list = await _branchesRepository.getBranches(pharmacyId: event.pharmacyId);
       emit(BranchesLoaded(list));
     } catch (e) {
-      emit(BranchesError(e.toString()));
+      emit(BranchesError(mapErrorToMessage(e)));
     }
   }
 
@@ -45,7 +46,7 @@ class BranchesBloc extends Bloc<BranchesEvent, BranchesState> {
       emit(BranchesActionSuccess('تم إضافة الفرع بنجاح'));
       add(BranchesLoadList(event.pharmacyId));
     } catch (e) {
-      emit(BranchesError(e.toString()));
+      emit(BranchesError(mapErrorToMessage(e)));
     }
   }
 
@@ -62,7 +63,7 @@ class BranchesBloc extends Bloc<BranchesEvent, BranchesState> {
       emit(BranchesActionSuccess('تم تعديل حالة الفرع بنجاح'));
       add(BranchesLoadList(event.pharmacyId));
     } catch (e) {
-      emit(BranchesError(e.toString()));
+      emit(BranchesError(mapErrorToMessage(e)));
     }
   }
 
@@ -82,7 +83,7 @@ class BranchesBloc extends Bloc<BranchesEvent, BranchesState> {
       );
       emit(PharmacyProfileUpdated(pharmacy));
     } catch (e) {
-      emit(BranchesError(e.toString()));
+      emit(BranchesError(mapErrorToMessage(e)));
     }
   }
 
@@ -94,7 +95,7 @@ class BranchesBloc extends Bloc<BranchesEvent, BranchesState> {
       final governorates = await _branchesRepository.getGovernorates();
       emit(BranchesGovernoratesLoaded(governorates));
     } catch (e) {
-      emit(BranchesError(e.toString()));
+      emit(BranchesError(mapErrorToMessage(e)));
     }
   }
 }

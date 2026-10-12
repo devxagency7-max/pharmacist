@@ -32,6 +32,13 @@ class ApiClient {
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
           }
+          // TEMP DEBUG — remove after use.
+          // ignore: avoid_print
+          print('🌐 [REQUEST] ${options.method} ${options.baseUrl}${options.path}');
+          if (token != null) {
+            // ignore: avoid_print
+            print('🔑 [DEBUG TOKEN] $token');
+          }
           handler.next(options);
         },
         onError: (error, handler) async {
@@ -67,15 +74,13 @@ class ApiClient {
     final data = error.response?.data;
     if (data is Map<String, dynamic>) {
       final message = data['message'] as String?;
-      final errors = (data['errors'] as List?)
-          ?.map((e) => e.toString())
-          .toList();
       return error.copyWith(
         error: ApiException(
           message ?? 'حدث خطأ غير متوقع',
           statusCode: error.response?.statusCode,
-          errors: errors,
-          errorCode: data['errorCode'] as String?,
+          errors: _parseErrorsList(data['errors']),
+          errorCode: _parseErrorCode(data),
+          extra: data,
         ),
       );
     }
@@ -101,6 +106,29 @@ class ApiClient {
   }
 }
 
+// The `errors` field is normally a List<String> (validation messages), but
+// at least one endpoint (draft submission's INTERN_PATIENT_CAP_REACHED)
+// sends it as a Map ({ "errorCode": "..." }) instead — never assume the
+// shape without checking, a blind `as List?` cast throws here.
+List<String>? _parseErrorsList(dynamic errors) {
+  if (errors is List) {
+    return errors.map((e) => e.toString()).toList();
+  }
+  return null;
+}
+
+// Normally top-level (`data['errorCode']`), but some endpoints nest it
+// inside the `errors` object instead — check both locations.
+String? _parseErrorCode(Map<String, dynamic> data) {
+  final topLevel = data['errorCode'];
+  if (topLevel is String) return topLevel;
+  final errors = data['errors'];
+  if (errors is Map && errors['errorCode'] is String) {
+    return errors['errorCode'] as String;
+  }
+  return null;
+}
+
 /// Unwraps the backend's `{success, message, data, errors}` envelope and
 /// returns just the `data` payload, throwing [ApiException] if `success` is
 /// false even on a 2xx response.
@@ -109,14 +137,12 @@ T unwrapApiResponse<T>(Response response, T Function(dynamic json) fromJson) {
   if (body is Map<String, dynamic>) {
     final success = body['success'] as bool? ?? true;
     if (!success) {
-      final errors = (body['errors'] as List?)
-          ?.map((e) => e.toString())
-          .toList();
       throw ApiException(
         body['message'] as String? ?? 'حدث خطأ غير متوقع',
         statusCode: response.statusCode,
-        errors: errors,
-        errorCode: body['errorCode'] as String?,
+        errors: _parseErrorsList(body['errors']),
+        errorCode: _parseErrorCode(body),
+        extra: body,
       );
     }
     return fromJson(body['data']);

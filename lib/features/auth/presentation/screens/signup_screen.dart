@@ -8,9 +8,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:pharmacist/core/constants/app_colors.dart';
 import 'package:pharmacist/core/di/injection_container.dart';
+import 'package:pharmacist/core/errors/error_message_mapper.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pharmacist/core/network/file_upload_service.dart';
 import 'package:pharmacist/features/auth/domain/repositories/auth_repository.dart';
+import 'package:pharmacist/features/academic/domain/entities/university_entity.dart';
+import 'package:pharmacist/features/academic/domain/entities/faculty_entity.dart';
+import 'package:pharmacist/features/academic/domain/repositories/academic_repository.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
@@ -64,7 +68,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool isPharmacist = true;
   final _licenseController = TextEditingController();
   final _membershipController = TextEditingController();
-  final _universityController = TextEditingController();
+
+  // Intern-only: cascading university/faculty pickers (backend now requires
+  // real ids, not free text — see /intern/apply contract).
+  List<UniversityEntity> _universities = [];
+  List<FacultyEntity> _faculties = [];
+  UniversityEntity? _selectedUniversity;
+  FacultyEntity? _selectedFaculty;
+  bool _isLoadingUniversities = false;
+  bool _isLoadingFaculties = false;
 
   // Step 2 values (Selected file paths)
   final Map<String, String?> _selectedFiles = {
@@ -91,6 +103,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (widget.initialPhone != null && widget.initialPhone!.isNotEmpty) {
       _phoneController.text = widget.initialPhone!;
     }
+    _loadUniversities();
   }
 
   @override
@@ -101,8 +114,44 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _passwordController.dispose();
     _licenseController.dispose();
     _membershipController.dispose();
-    _universityController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadUniversities() async {
+    setState(() => _isLoadingUniversities = true);
+    try {
+      final universities = await getIt<AcademicRepository>().getUniversities();
+      if (!mounted) return;
+      setState(() {
+        _universities = universities;
+        _isLoadingUniversities = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isLoadingUniversities = false);
+    }
+  }
+
+  Future<void> _onUniversitySelected(UniversityEntity? university) async {
+    setState(() {
+      _selectedUniversity = university;
+      _selectedFaculty = null;
+      _faculties = [];
+    });
+    if (university == null) return;
+
+    setState(() => _isLoadingFaculties = true);
+    try {
+      final faculties = await getIt<AcademicRepository>().getFaculties(university.id);
+      if (!mounted) return;
+      setState(() {
+        _faculties = faculties;
+        _isLoadingFaculties = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isLoadingFaculties = false);
+    }
   }
 
   void _showSnackBar(String message, {bool isError = true}) {
@@ -130,6 +179,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
       }
       if (FirebaseAuth.instance.currentUser == null && _passwordController.text.length < 6) {
         _showSnackBar('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+        return false;
+      }
+    } else if (_currentStep == 1 && !isPharmacist) {
+      if (_selectedUniversity == null) {
+        _showSnackBar('يرجى اختيار الجامعة');
+        return false;
+      }
+      if (_selectedFaculty == null) {
+        _showSnackBar('يرجى اختيار الكلية');
         return false;
       }
     } else if (_currentStep == 2) {
@@ -222,12 +280,23 @@ class _SignUpScreenState extends State<SignUpScreen> {
       setState(() {
         _loadingMessage = 'جاري تقديم طلب الانضمام المهني...';
       });
-      final app = await authRepo.applyPharmacist(
-        applicationType: isPharmacist ? 'Pharmacist' : 'Intern',
-        licenseNumber: _licenseController.text.trim().isEmpty ? null : _licenseController.text.trim(),
-        membershipNumber: _membershipController.text.trim().isEmpty ? null : _membershipController.text.trim(),
-        universityName: _universityController.text.trim().isEmpty ? null : _universityController.text.trim(),
-      );
+      final app = isPharmacist
+          ? await authRepo.applyPharmacist(
+              applicationType: 'Pharmacist',
+              licenseNumber: _licenseController.text.trim().isEmpty
+                  ? null
+                  : _licenseController.text.trim(),
+              membershipNumber: _membershipController.text.trim().isEmpty
+                  ? null
+                  : _membershipController.text.trim(),
+            )
+          : await authRepo.applyAsIntern(
+              universityId: _selectedUniversity!.id,
+              facultyId: _selectedFaculty!.id,
+              membershipNumber: _membershipController.text.trim().isEmpty
+                  ? null
+                  : _membershipController.text.trim(),
+            );
 
       // 3. Upload & link files
       final selectedDocs = _selectedFiles.entries.where((e) => e.value != null).toList();
@@ -281,7 +350,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         setState(() {
           _isLoading = false;
         });
-        _showSnackBar('حدث خطأ أثناء التسجيل: $e');
+        _showSnackBar(mapErrorToMessage(e));
       }
     }
   }
@@ -594,36 +663,144 @@ class _SignUpScreenState extends State<SignUpScreen> {
           child: _buildRoleSelector(),
         ),
         SizedBox(height: 24.h),
-        FadeInUp(
-          delay: const Duration(milliseconds: 200),
-          child: _buildGlassTextField(
-            controller: _licenseController,
-            label: 'رقم ترخيص مزاولة المهنة (اختياري)',
-            hint: 'مثال: PH-2024-88231',
-            icon: Icons.badge_outlined,
+        if (isPharmacist) ...[
+          FadeInUp(
+            delay: const Duration(milliseconds: 200),
+            child: _buildGlassTextField(
+              controller: _licenseController,
+              label: 'رقم ترخيص مزاولة المهنة (اختياري)',
+              hint: 'مثال: PH-2024-88231',
+              icon: Icons.badge_outlined,
+            ),
           ),
-        ),
-        SizedBox(height: 16.h),
-        FadeInUp(
-          delay: const Duration(milliseconds: 250),
-          child: _buildGlassTextField(
-            controller: _membershipController,
-            label: 'رقم عضوية النقابة (اختياري)',
-            hint: 'مثال: SYN-55214',
-            icon: Icons.card_membership_outlined,
+          SizedBox(height: 16.h),
+          FadeInUp(
+            delay: const Duration(milliseconds: 250),
+            child: _buildGlassTextField(
+              controller: _membershipController,
+              label: 'رقم عضوية النقابة (اختياري)',
+              hint: 'مثال: SYN-55214',
+              icon: Icons.card_membership_outlined,
+            ),
           ),
-        ),
-        SizedBox(height: 16.h),
-        FadeInUp(
-          delay: const Duration(milliseconds: 300),
-          child: _buildGlassTextField(
-            controller: _universityController,
-            label: 'اسم جامعة التخرج (اختياري)',
-            hint: 'مثال: جامعة القاهرة - كلية الصيدلة',
-            icon: Icons.school_outlined,
+        ] else ...[
+          FadeInUp(
+            delay: const Duration(milliseconds: 200),
+            child: _buildGlassTextField(
+              controller: _membershipController,
+              label: 'الرقم القومي / رقم قيد النقابة (اختياري)',
+              hint: 'مثال: 12345',
+              icon: Icons.card_membership_outlined,
+            ),
           ),
-        ),
+          SizedBox(height: 16.h),
+          FadeInUp(
+            delay: const Duration(milliseconds: 250),
+            child: _buildUniversityDropdown(),
+          ),
+          SizedBox(height: 16.h),
+          FadeInUp(
+            delay: const Duration(milliseconds: 300),
+            child: _buildFacultyDropdown(),
+          ),
+        ],
         SizedBox(height: 20.h),
+      ],
+    );
+  }
+
+  Widget _buildUniversityDropdown() {
+    return _buildGlassDropdown<UniversityEntity>(
+      label: 'الجامعة',
+      icon: Icons.account_balance_outlined,
+      value: _selectedUniversity,
+      isLoading: _isLoadingUniversities,
+      hint: 'اختر الجامعة',
+      items: _universities,
+      itemLabel: (u) => u.arabicName,
+      onChanged: _onUniversitySelected,
+    );
+  }
+
+  Widget _buildFacultyDropdown() {
+    return _buildGlassDropdown<FacultyEntity>(
+      label: 'الكلية',
+      icon: Icons.school_outlined,
+      value: _selectedFaculty,
+      isLoading: _isLoadingFaculties,
+      hint: _selectedUniversity == null ? 'اختر الجامعة أولاً' : 'اختر الكلية',
+      items: _faculties,
+      itemLabel: (f) => f.arabicName,
+      onChanged: _selectedUniversity == null
+          ? null
+          : (faculty) => setState(() => _selectedFaculty = faculty),
+    );
+  }
+
+  Widget _buildGlassDropdown<T>({
+    required String label,
+    required IconData icon,
+    required T? value,
+    required bool isLoading,
+    required String hint,
+    required List<T> items,
+    required String Function(T) itemLabel,
+    required void Function(T?)? onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.only(right: 4.w, bottom: 8.h),
+          child: Text(
+            label,
+            style: GoogleFonts.cairo(fontSize: 14.sp, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+          ),
+        ),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.6),
+            borderRadius: BorderRadius.circular(16.r),
+            border: Border.all(color: Colors.white, width: 1.5),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16.r),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButtonFormField<T>(
+                    initialValue: value,
+                    isExpanded: true,
+                    icon: isLoading
+                        ? SizedBox(
+                            width: 16.r,
+                            height: 16.r,
+                            child: const CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.keyboard_arrow_down_rounded),
+                    style: GoogleFonts.cairo(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                    decoration: InputDecoration(
+                      hintText: hint,
+                      hintStyle: GoogleFonts.cairo(color: AppColors.textSecondary.withOpacity(0.5), fontSize: 13.sp),
+                      prefixIcon: Icon(icon, color: AppColors.primaryGreen, size: 22.r),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(vertical: 16.h),
+                    ),
+                    items: items
+                        .map((item) => DropdownMenuItem<T>(
+                              value: item,
+                              child: Text(itemLabel(item), overflow: TextOverflow.ellipsis),
+                            ))
+                        .toList(),
+                    onChanged: onChanged,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -749,7 +926,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
           Positioned(
             right: 0,
             child: GestureDetector(
-              onTap: () => Navigator.pop(context),
+              onTap: () {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  );
+                }
+              },
               child: Container(
                 padding: EdgeInsets.all(8.r),
                 decoration: BoxDecoration(

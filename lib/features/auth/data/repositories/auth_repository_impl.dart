@@ -223,6 +223,12 @@ class AuthRepositoryImpl implements AuthRepository {
     final user = _firebaseAuth.currentUser;
     if (user == null) return null;
 
+    // Force-refresh: a role change (e.g. admin approves a pharmacist/intern
+    // application) only takes effect in a NEW ID token — the cached one
+    // still carries the old role claims and would 403 on role-gated
+    // endpoints instead of reflecting the promotion.
+    await user.getIdToken(true);
+
     return await _getProfile();
   }
 
@@ -246,6 +252,27 @@ class AuthRepositoryImpl implements AuthRepository {
         if (licenseNumber != null) 'licenseNumber': licenseNumber,
         if (membershipNumber != null) 'membershipNumber': membershipNumber,
         if (universityName != null) 'universityName': universityName,
+      },
+    );
+    return unwrapApiResponse(
+      response,
+      (json) => PharmacistApplicationModel.fromJson(json),
+    );
+  }
+
+  @override
+  Future<PharmacistApplicationEntity> applyAsIntern({
+    required String universityId,
+    required String facultyId,
+    String? membershipNumber,
+  }) async {
+    final response = await _apiClient.dio.post(
+      ApiConstants.internApply,
+      data: {
+        'universityId': universityId,
+        'facultyId': facultyId,
+        if (membershipNumber != null) 'membershipNumber': membershipNumber,
+        'universityName': null,
       },
     );
     return unwrapApiResponse(

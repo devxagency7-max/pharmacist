@@ -3,7 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pharmacist/core/constants/app_colors.dart';
 import 'package:pharmacist/core/di/injection_container.dart';
-import 'package:pharmacist/core/errors/api_exception.dart';
+import 'package:pharmacist/core/errors/error_message_mapper.dart';
 import '../../domain/repositories/medication_plan_repository.dart';
 
 const _timeOfDayOptions = ['Morning', 'Afternoon', 'Evening', 'Night'];
@@ -146,19 +146,13 @@ class _MedicationPlanFormScreenState extends State<MedicationPlanFormScreen> {
       }
       if (!mounted) return;
       Navigator.of(context).pop(true);
-    } on ApiException catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _submitting = false;
-        _errorMessage = e.statusCode == 404
-            ? 'لا توجد علاقة علاجية نشطة مع هذا المريض، لا يمكنك تعديل خطته الدوائية.'
-            : e.message;
-      });
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _submitting = false;
-        _errorMessage = 'حدث خطأ غير متوقع، حاول مرة أخرى.';
+        _errorMessage = asApiException(e)?.statusCode == 404
+            ? 'لا توجد علاقة علاجية نشطة مع هذا المريض، لا يمكنك تعديل خطته الدوائية.'
+            : mapErrorToMessage(e);
       });
     }
   }

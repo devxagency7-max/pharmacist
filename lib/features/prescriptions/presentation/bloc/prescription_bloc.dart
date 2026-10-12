@@ -1,5 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:pharmacist/core/errors/api_exception.dart';
+import 'package:pharmacist/core/errors/error_message_mapper.dart';
 import '../../domain/repositories/prescription_repository.dart';
 import 'prescription_event.dart';
 import 'prescription_state.dart';
@@ -23,7 +23,7 @@ class PrescriptionBloc extends Bloc<PrescriptionEvent, PrescriptionState> {
       final result = await _repository.getPendingReviews();
       emit(PrescriptionQueueLoaded(result.items));
     } catch (e) {
-      emit(PrescriptionQueueError(e is ApiException ? e.message : e.toString()));
+      emit(PrescriptionQueueError(mapErrorToMessage(e)));
     }
   }
 
@@ -36,7 +36,7 @@ class PrescriptionBloc extends Bloc<PrescriptionEvent, PrescriptionState> {
       final prescription = await _repository.getPrescriptionDetail(event.prescriptionId);
       emit(PrescriptionDetailLoaded(prescription));
     } catch (e) {
-      emit(PrescriptionDetailError(e is ApiException ? e.message : e.toString()));
+      emit(PrescriptionDetailError(mapErrorToMessage(e)));
     }
   }
 
@@ -49,7 +49,7 @@ class PrescriptionBloc extends Bloc<PrescriptionEvent, PrescriptionState> {
       emit(PrescriptionActionSuccess('تمت الموافقة على الوصفة الطبية.'));
       add(PrescriptionQueueRequested());
     } catch (e) {
-      emit(PrescriptionActionError(e is ApiException ? e.message : e.toString()));
+      emit(PrescriptionActionError(mapErrorToMessage(e)));
     }
   }
 
@@ -62,7 +62,7 @@ class PrescriptionBloc extends Bloc<PrescriptionEvent, PrescriptionState> {
       emit(PrescriptionActionSuccess('تم رفض الوصفة الطبية.'));
       add(PrescriptionQueueRequested());
     } catch (e) {
-      emit(PrescriptionActionError(e is ApiException ? e.message : e.toString()));
+      emit(PrescriptionActionError(mapErrorToMessage(e)));
     }
   }
 }
